@@ -33,6 +33,31 @@
 
   <!-- Admin workspace -->
   <main class="admin-main hidden" id="adminPanel">
+
+    <!-- Storage stats -->
+    <div class="panel admin-stats">
+      <div class="stat">
+        <span>Database</span>
+        <b id="statDbType">…</b>
+      </div>
+      <div class="stat">
+        <span>Total Storage</span>
+        <b id="statTotal">…</b>
+      </div>
+      <div class="stat">
+        <span>Product Data</span>
+        <b id="statProducts" class="gold">…</b>
+      </div>
+      <div class="stat">
+        <span>Products</span>
+        <b id="statCount">…</b>
+      </div>
+      <div class="stat-bar-wrap">
+        <div class="stat-bar"><i id="statBar"></i></div>
+        <span class="stat-bar-label" id="statBarLabel"></span>
+      </div>
+    </div>
+
     <div class="admin-grid">
 
       <!-- Left: create / edit form -->

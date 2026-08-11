@@ -12,6 +12,7 @@ const fs = require('fs');
 const usePg = Boolean(process.env.DATABASE_URL || process.env.PGHOST);
 
 let impl = null;
+let dbFilePath = null; // SQLite 数据文件路径（connect 后赋值，供存储统计使用）
 
 /** 将 ? 占位符转换为 PostgreSQL 的 $n 占位符 */
 function toPgSql(sql) {
@@ -73,6 +74,7 @@ async function connect() {
   const dataDir = path.join(__dirname, 'data');
   fs.mkdirSync(dataDir, { recursive: true });
   const dbFile = path.join(dataDir, 'leapchess.db');
+  dbFilePath = dbFile;
 
   let sqliteDb;
   if (fs.existsSync(dbFile)) {
@@ -185,6 +187,26 @@ async function ensureColumn(table, column, definition) {
   }
 }
 
+/** 存储统计：数据库总占用 + 商品数据占用（字节） */
+async function storageStats() {
+  if (!impl) throw new Error('数据库尚未连接，请先 await connect()');
+
+  if (usePg) {
+    // PostgreSQL 内建函数：整库体积 / products 表（含索引）体积
+    const total = await impl.query('SELECT pg_database_size(current_database()) AS bytes');
+    const rows = await impl.query("SELECT COALESCE(pg_total_relation_size('products'), 0) AS bytes");
+    return { totalBytes: Number(total[0].bytes), productBytes: Number(rows[0].bytes) };
+  }
+
+  // SQLite：总占用 = 数据文件体积；商品占用 = 图片/变体等文本列长度累加
+  const totalBytes = dbFilePath && fs.existsSync(dbFilePath) ? fs.statSync(dbFilePath).size : 0;
+  const rows = await impl.query(`
+    SELECT COALESCE(SUM(
+      LENGTH(COALESCE(images, '')) + LENGTH(COALESCE(variants, '')) + LENGTH(COALESCE(image, ''))
+    ), 0) AS bytes FROM products`);
+  return { totalBytes, productBytes: Number(rows[0].bytes) };
+}
+
 /** 代理对象：connect() 之后才可调用 query/run */
 const db = {
   get type() {
@@ -200,4 +222,4 @@ const db = {
   },
 };
 
-module.exports = { db, connect, initSchema, usePg };
+module.exports = { db, connect, initSchema, usePg, storageStats };

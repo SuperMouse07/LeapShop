@@ -11,7 +11,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const { db, connect, initSchema, usePg } = require('./db');
+const { db, connect, initSchema, usePg, storageStats } = require('./db');
 const { seed } = require('./seed');
 
 const PORT = Number(process.env.PORT || 3000); // Zeabur 会注入 PORT（默认 8080）
@@ -185,6 +185,18 @@ app.delete('/api/products/:id', authRequired, adminOnly, async (req, res) => {
   if (!exist[0]) return res.status(404).json({ error: 'Product not found' });
   await db.run('DELETE FROM products WHERE id = ?', [req.params.id]);
   res.json({ ok: true });
+});
+
+/* ---------------- 存储统计（管理员） ---------------- */
+app.get('/api/stats/storage', authRequired, adminOnly, async (req, res) => {
+  const { totalBytes, productBytes } = await storageStats();
+  const [{ c }] = await db.query('SELECT COUNT(*) AS c FROM products');
+  res.json({
+    dbType: db.type,
+    totalBytes,
+    productBytes,
+    productCount: Number(c),
+  });
 });
 
 /* ---------------- 健康检查 ---------------- */

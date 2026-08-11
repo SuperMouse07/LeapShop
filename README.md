@@ -63,6 +63,7 @@ node backend\test-crud.js                                       # 中文数据 C
 | POST | `/api/products` | 管理员 | 新增商品 |
 | PUT | `/api/products/:id` | 管理员 | 更新商品 |
 | DELETE | `/api/products/:id` | 管理员 | 删除商品 |
+| GET | `/api/stats/storage` | 管理员 | 存储统计（数据库总占用 / 商品数据占用 / 商品数） |
 | GET | `/api/health` | 公开 | 健康检查（含数据库类型） |
 
 写操作需要请求头 `Authorization: Bearer <token>`；客户角色调用写接口返回 `403`。

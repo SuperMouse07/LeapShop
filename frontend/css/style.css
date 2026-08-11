@@ -351,6 +351,42 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
 .denied-card p { color: var(--ivory-dim); font-size: 14px; margin-bottom: 24px; }
 
 .admin-main { padding: 40px 5vw 70px; }
+
+/* ---------- 存储统计面板 ---------- */
+.admin-stats {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+  padding: 20px 26px;
+}
+.admin-stats .stat span {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ivory-dim);
+  margin-bottom: 3px;
+}
+.admin-stats .stat b { font-family: var(--serif); font-size: 20px; color: var(--ivory); }
+.stat-bar-wrap { flex: 1; min-width: 220px; display: flex; align-items: center; gap: 14px; }
+.stat-bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(243, 234, 217, .12);
+  overflow: hidden;
+}
+.stat-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brown-light), var(--gold));
+  transition: width .5s ease;
+}
+.stat-bar-label { font-size: 12px; color: var(--ivory-dim); white-space: nowrap; }
+
 .admin-grid { display: grid; grid-template-columns: 380px 1fr; gap: 26px; align-items: start; }
 .panel {
   background: var(--panel);
@@ -393,6 +429,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
 @media (max-width: 900px) {
   .admin-grid { grid-template-columns: 1fr; }
   .hero-piece { opacity: .5; }
+  .admin-stats { gap: 20px; }
 }
 @media (max-width: 720px) {
   .nav-toggle { display: block; }

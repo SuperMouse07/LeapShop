@@ -35,6 +35,35 @@ async function guard() {
   }
 }
 
+/* ---------- Storage stats ---------- */
+function formatBytes(bytes) {
+  const n = Number(bytes) || 0;
+  if (n < 1024) return `${n} B`;
+  const units = ['KB', 'MB', 'GB'];
+  let v = n;
+  let u = -1;
+  do {
+    v /= 1024;
+    u++;
+  } while (v >= 1024 && u < units.length - 1);
+  return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[u]}`;
+}
+
+async function loadStats() {
+  try {
+    const s = await api('/stats/storage');
+    $('statDbType').textContent = s.dbType === 'postgresql' ? 'PostgreSQL' : 'SQLite';
+    $('statTotal').textContent = formatBytes(s.totalBytes);
+    $('statProducts').textContent = formatBytes(s.productBytes);
+    $('statCount').textContent = `${s.productCount} item(s)`;
+    const pct = s.totalBytes > 0 ? Math.min(100, (s.productBytes / s.totalBytes) * 100) : 0;
+    $('statBar').style.width = `${pct}%`;
+    $('statBarLabel').textContent = `Product data takes ${pct.toFixed(1)}% of total storage`;
+  } catch {
+    $('statBarLabel').textContent = 'Storage stats unavailable';
+  }
+}
+
 /* ---------- Product list ---------- */
 async function loadList() {
   const tbody = $('productRows');
@@ -282,6 +311,7 @@ $('productForm').addEventListener('submit', async (e) => {
     }
     resetForm();
     loadList();
+    loadStats();
   } catch (err) {
     setMsg(err.message, false);
   }
@@ -305,6 +335,7 @@ $('productRows').addEventListener('click', async (e) => {
     try {
       await api(`/products/${product.id}`, { method: 'DELETE' });
       loadList();
+      loadStats();
     } catch (err) {
       alert(`Delete failed: ${err.message}`);
     }
@@ -317,5 +348,6 @@ $('productRows').addEventListener('click', async (e) => {
     renderGallery();
     renderVariants();
     loadList();
+    loadStats();
   }
 })();
