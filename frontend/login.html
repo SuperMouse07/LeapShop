@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In · LeapChess</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-wrap">
+    <a class="brand auth-brand" href="index.html">
+      <span class="brand-icon">♞</span>
+      <span class="brand-name">LeapChess</span>
+    </a>
+    <form class="auth-card" id="loginForm">
+      <h1>Player Sign In</h1>
+      <p class="auth-sub">Your move. Sign in to browse all content.</p>
+      <label>
+        Username
+        <input type="text" id="username" placeholder="e.g. P001 / C001" autocomplete="username" required />
+      </label>
+      <label>
+        Password
+        <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required />
+      </label>
+      <p class="auth-error" id="authError"></p>
+      <button class="btn btn-primary btn-block" type="submit">Sign In</button>
+      <div class="auth-tip">
+        <p>Demo accounts:</p>
+        <p>♛ Super Admin <code>P001 / 123456</code> (upload &amp; manage products)</p>
+        <p>♟ Customer <code>C001 / 123456</code> (browse basic content)</p>
+      </div>
+    </form>
+  </div>
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>

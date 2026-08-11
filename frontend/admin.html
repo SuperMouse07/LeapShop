@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Management · LeapChess Admin</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="admin-body">
+
+  <!-- Nav -->
+  <nav class="nav">
+    <a class="brand" href="index.html">
+      <span class="brand-icon">♞</span>
+      <span class="brand-name">LeapChess <i class="admin-badge">Admin</i></span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">← Back to Site</a>
+      <span id="navUserSlot"></span>
+    </div>
+  </nav>
+
+  <!-- Access denied (shown to non-admins) -->
+  <section class="admin-denied hidden" id="deniedPanel">
+    <div class="denied-card">
+      <div class="denied-icon">♚</div>
+      <h2>Access Denied</h2>
+      <p id="deniedMsg">Product upload &amp; management is restricted to <b>super admins</b>. Please sign in with an admin account (P001).</p>
+      <a class="btn btn-primary" href="login.html">Go to Sign In</a>
+    </div>
+  </section>
+
+  <!-- Admin workspace -->
+  <main class="admin-main hidden" id="adminPanel">
+    <div class="admin-grid">
+
+      <!-- Left: create / edit form -->
+      <form class="panel" id="productForm">
+        <h2 id="formTitle">♟ Upload New Product</h2>
+        <input type="hidden" id="editId" />
+        <label>Product Name *
+          <input type="text" id="pName" placeholder="e.g. LEAP PQ9999 Digital Chess Timer" required />
+        </label>
+        <div class="form-row">
+          <label>Category
+            <select id="pCategory">
+              <option value="chess-timer">Chess Timer</option>
+              <option value="chess-set">Chess Set</option>
+              <option value="apparel">Apparel &amp; Gear</option>
+            </select>
+          </label>
+          <label>Price ($)
+            <input type="number" id="pPrice" min="0" step="0.01" placeholder="0.00" />
+          </label>
+          <label>Stock
+            <input type="number" id="pStock" min="0" step="1" placeholder="0" />
+          </label>
+        </div>
+        <label>Description
+          <textarea id="pDesc" rows="3" placeholder="One line about what makes it great…"></textarea>
+        </label>
+        <label>Image (file will be embedded and stored in the database)
+          <input type="file" id="pImage" accept="image/*" />
+        </label>
+        <div class="img-preview hidden" id="imgPreview"></div>
+        <p class="form-msg" id="formMsg"></p>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit" id="submitBtn">Save Product</button>
+          <button class="btn btn-ghost" type="button" id="cancelEdit">Cancel Edit</button>
+        </div>
+      </form>
+
+      <!-- Right: product list -->
+      <div class="panel">
+        <div class="panel-head">
+          <h2>♜ Products <span class="count" id="productCount"></span></h2>
+          <button class="btn btn-small btn-ghost" id="refreshBtn">Refresh ⟳</button>
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr><th>ID</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="productRows">
+              <tr><td colspan="7" class="loading">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

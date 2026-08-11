@@ -1,22 +1,25 @@
-# ============================================================
-# 鼠图图 Shututu · Zeabur 部署镜像
-# 说明：Zeabur 会自动识别 Dockerfile 并构建。
-# nginx 官方镜像会把 /etc/nginx/templates/*.template 中的
-# ${PORT} 替换为 Zeabur 注入的 PORT 环境变量（默认 8080）。
-# ============================================================
-FROM nginx:1.27-alpine
+# LeapChess 全栈应用（单服务镜像：后端 API + 静态前端）
+FROM node:20-alpine
 
-# nginx 配置模板（由 nginx 入口脚本自动做 envsubst）
-COPY deploy/nginx.conf.template /etc/nginx/templates/default.conf.template
+WORKDIR /app/backend
 
-# 静态站点文件
-COPY --chown=nginx:nginx index.html favicon.svg /usr/share/nginx/html/
-COPY --chown=nginx:nginx css /usr/share/nginx/html/css
-COPY --chown=nginx:nginx js /usr/share/nginx/html/js
+# 依赖层缓存
+COPY backend/package.json backend/package-lock.json* ./
+RUN npm install --omit=dev --no-audit --no-fund
 
-# Zeabur 默认注入 PORT=8080；此处提供兜底默认值
+# 后端代码
+COPY backend/ ./
+
+# 前端静态资源（后端以单服务模式托管）
+COPY frontend/ ../frontend/
+
+ENV NODE_ENV=production
+# Zeabur 会注入 PORT（Git 服务默认 8080），此处声明与之一致以供路由发现
 ENV PORT=8080
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget -q --spider http://127.0.0.1:${PORT}/ || exit 1
+# 健康检查（供 Zeabur/容器编排探测 /api/health）
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+  CMD wget -q --spider "http://127.0.0.1:${PORT:-8080}/api/health" || exit 1
+
+CMD ["node", "server.js"]

@@ -1,0 +1,22 @@
+{
+  "name": "leapchess-backend",
+  "version": "2.0.0",
+  "description": "LeapChess 国际象棋装备官网后端 API（Express + SQLite/PostgreSQL）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node seed.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1",
+    "sql.js": "^1.13.0"
+  }
+}

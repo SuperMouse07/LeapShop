@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeapChess · Built for Grandmasters, Accessible to Everyone</title>
+  <meta name="description" content="LeapChess official store: FIDE-certified chess clocks, wooden chess sets and chess lifestyle gear. Precision for Players, by Players." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body id="top">
+
+  <!-- ============ Nav ============ -->
+  <nav class="nav" id="nav">
+    <a class="brand" href="#top">
+      <span class="brand-icon">♞</span>
+      <span class="brand-name">LeapChess</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="#shop">Shop</a>
+      <a href="#why">Why Leap</a>
+      <a href="#journey">Our Journey</a>
+      <span id="navUserSlot"></span>
+      <a class="btn btn-small" href="login.html" id="navLoginBtn">Sign In</a>
+    </div>
+  </nav>
+
+  <!-- ============ Hero ============ -->
+  <header class="hero">
+    <div class="hero-board" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <span class="hero-kicker">♜ LEAP CHESS OFFICIAL</span>
+      <h1>Built for Grandmasters,<br /><span class="gold">Accessible to Everyone.</span></h1>
+      <p class="hero-sub">
+        From FIDE-certified tournament clocks to creative chess essentials,
+        we empower players at every level to focus on what matters most — <b>the next move</b>.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#shop">Shop Now ♟</a>
+        <a class="btn btn-ghost" href="#why">Why Choose Leap</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hs"><b>500,000+</b><span>Chess Clubs Served</span></div>
+        <div class="hs"><b>FIDE</b><span>Certified Timers</span></div>
+        <div class="hs"><b>39</b><span>Timing Modes</span></div>
+      </div>
+    </div>
+    <div class="hero-piece" aria-hidden="true">♞</div>
+  </header>
+
+  <!-- ============ Why Leap ============ -->
+  <section class="section why" id="why">
+    <div class="section-head reveal">
+      <span class="section-tag">WHY LEAP</span>
+      <h2>Precision for Players, by Players.</h2>
+      <p>Born from a lifelong passion for the game. LEAP combines professional-grade accuracy with innovative design.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card reveal">
+        <div class="why-icon">♛</div>
+        <h3>Pro-Grade Precision</h3>
+        <p>Millisecond timing chips with FIDE-standard presets — reliable from club training to international tournaments.</p>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-icon">♜</div>
+        <h3>Built to Last</h3>
+        <p>Drop-resistant bodies, long-life batteries and anti-slip bases, tough enough for thousands of games.</p>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-icon">♝</div>
+        <h3>Accessible to All</h3>
+        <p>From entry-level training clocks to flagship tournament models — there's one for every budget.</p>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-icon">♞</div>
+        <h3>Smart &amp; Connected</h3>
+        <p>Flagship models sync with apps like Lichess / Chess.com, so your post-game analysis starts faster.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Shop (dynamic) ============ -->
+  <section class="section shop" id="shop">
+    <div class="section-head reveal">
+      <span class="section-tag">SHOP</span>
+      <h2>Featured Products</h2>
+      <p>Find the Move. Beat the Clock. — Product data is served live from the backend API.</p>
+    </div>
+    <div class="filter-bar reveal" id="filterBar">
+      <button class="chip active" data-cat="">All</button>
+      <button class="chip" data-cat="chess-timer">Chess Timers</button>
+      <button class="chip" data-cat="chess-set">Chess Sets</button>
+      <button class="chip" data-cat="apparel">Apparel &amp; Gear</button>
+    </div>
+    <div class="product-grid" id="productGrid">
+      <div class="loading">Loading products from the database… ♟</div>
+    </div>
+  </section>
+
+  <!-- ============ Our Journey ============ -->
+  <section class="section journey" id="journey">
+    <div class="section-head reveal">
+      <span class="section-tag">OUR JOURNEY</span>
+      <h2>Empowering Clubs. Elevating the Game.</h2>
+      <p>Equip. Support. Win. — From the needs of one chess club to the choice of 500,000 worldwide.</p>
+    </div>
+    <div class="timeline">
+      <div class="tl-item reveal">
+        <span class="tl-dot">♟</span>
+        <div class="tl-body">
+          <h4>The Origin</h4>
+          <p>Our founder, a lifelong chess lover, found clocks on the market either too expensive or unreliable — and decided to build a better one.</p>
+        </div>
+      </div>
+      <div class="tl-item reveal">
+        <span class="tl-dot">♜</span>
+        <div class="tl-body">
+          <h4>Certified Professional</h4>
+          <p>Our flagship series earned FIDE certification and took its place beside the boards of international tournaments.</p>
+        </div>
+      </div>
+      <div class="tl-item reveal">
+        <span class="tl-dot">♛</span>
+        <div class="tl-body">
+          <h4>Serving the World</h4>
+          <p>Supporting 500,000+ clubs and schools worldwide — the trusted gear of coaches and arbiters.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta">
+    <div class="cta-inner reveal">
+      <h2>Your move. <span class="gold">It's your turn.</span></h2>
+      <p>Sign in to browse all content; super admins can enter the dashboard to upload and manage products.</p>
+      <a class="btn btn-primary" href="login.html">Sign In ♞</a>
+    </div>
+  </section>
+
+  <!-- ============ Footer ============ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-icon">♞</span>
+        <div>
+          <b>LeapChess</b>
+          <p>Precision for Players, by Players.</p>
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="#shop">Shop</a>
+        <a href="#why">Why Leap</a>
+        <a href="#journey">Our Journey</a>
+        <a href="login.html">Sign In</a>
+      </div>
+      <div class="footer-meta">
+        <p id="healthBadge">Checking API status…</p>
+        <p>✉️ hello@leapchess.example</p>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> LeapChess · Full-stack demo: frontend + backend + database</div>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
