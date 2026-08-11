@@ -54,6 +54,11 @@ export function escapeHtml(str) {
   }[c]));
 }
 
+/** 取商品主图：优先多图列表第一张，兼容旧单图字段 */
+export function productImage(p) {
+  return (p.images && p.images[0]) || p.image || '';
+}
+
 /** 在导航栏渲染用户状态（登录信息 / 退出 / 管理入口） */
 export function renderNavUser() {
   const slot = document.getElementById('navUserSlot');

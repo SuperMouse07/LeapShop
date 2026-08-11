@@ -41,6 +41,7 @@ npm start          # 启动后访问 http://localhost:3000
 |------|------|
 | 官网首页 | `/` |
 | 登录 | `/login.html` |
+| 商品详情 | `/product.html?id=<id>` |
 | 管理后台 | `/admin.html` |
 
 ### API 冒烟测试
@@ -65,7 +66,8 @@ node backend\test-crud.js                                       # 中文数据 C
 | GET | `/api/health` | 公开 | 健康检查（含数据库类型） |
 
 写操作需要请求头 `Authorization: Bearer <token>`；客户角色调用写接口返回 `403`。
-商品图片以 base64 内嵌存储于数据库（上限 1.5MB），适配 Zeabur 无状态文件系统。
+商品图片以 base64 内嵌存储于数据库（单张上限 1.5MB，每件商品最多 10 张，至少 1 张主图），适配 Zeabur 无状态文件系统。
+商品支持颜色/款式变体（`variants`），每个变体可携带独立图集；详情页（`/product.html?id=<id>`）左侧轮播展示图片、右侧展示名称/价格/描述与变体选择。
 
 ## Zeabur 部署（针对 Zeabur 平台特性适配）
 
@@ -116,11 +118,13 @@ node backend\test-crud.js                                       # 中文数据 C
 └── frontend/
     ├── index.html          # 官网首页（Hero / 品牌 / 动态商品 / 历程）
     ├── login.html          # 登录页
-    ├── admin.html          # 管理后台（商品上传 / 编辑 / 删除）
+    ├── product.html        # 商品详情页（左轮播图 + 右信息/变体选择）
+    ├── admin.html          # 管理后台（多图上传 / 变体管理 / 编辑 / 删除）
     ├── css/style.css       # 国际象棋主题样式
     └── js/
         ├── api.js          # 共享 API 客户端（Token 管理、请求封装）
         ├── main.js         # 首页逻辑（动态商品加载、过滤）
         ├── auth.js         # 登录逻辑
-        └── admin.js        # 后台逻辑（权限门 + CRUD + 图片上传）
+        ├── product.js      # 详情页逻辑（轮播、颜色/款式切换）
+        └── admin.js        # 后台逻辑（权限门 + CRUD + 多图/变体上传）
 ```

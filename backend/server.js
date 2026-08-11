@@ -17,10 +17,50 @@ const { seed } = require('./seed');
 const PORT = Number(process.env.PORT || 3000); // Zeabur 会注入 PORT（默认 8080）
 const JWT_SECRET = process.env.JWT_SECRET || 'leapchess-dev-secret-change-me';
 const TOKEN_TTL = '12h';
+const MAX_IMAGES = 10; // 每件商品（含变体图集）最多图片数
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '4mb' })); // 允许 base64 图片
+app.use(express.json({ limit: '24mb' })); // 多图 base64 内嵌存储
+
+/* ---------------- 数据规整工具 ---------------- */
+/** 归一化图片集合：兼容旧单图字段 / JSON 字符串 / 数组，最多 MAX_IMAGES 张 */
+function toImages(value, legacySingle = '') {
+  let arr = [];
+  if (Array.isArray(value)) arr = value;
+  else if (typeof value === 'string' && value.trim().startsWith('[')) {
+    try { arr = JSON.parse(value); } catch { arr = []; }
+  } else if (typeof value === 'string' && value.trim()) arr = [value];
+  if (!arr.length && legacySingle) arr = [legacySingle];
+  return arr.filter((s) => typeof s === 'string' && s.length > 0).slice(0, MAX_IMAGES);
+}
+
+/** 归一化变体：[{ color, style, images[] }] */
+function toVariants(value) {
+  let arr = [];
+  if (Array.isArray(value)) arr = value;
+  else if (typeof value === 'string' && value.trim().startsWith('[')) {
+    try { arr = JSON.parse(value); } catch { arr = []; }
+  }
+  return arr
+    .filter((v) => v && typeof v === 'object')
+    .map((v) => ({
+      color: String(v.color || '').trim(),
+      style: String(v.style || '').trim(),
+      images: toImages(v.images),
+    }))
+    .filter((v) => v.color || v.style || v.images.length);
+}
+
+/** 出库前把 JSON 文本列解析为数组，便于前端直接使用 */
+function parseProduct(p) {
+  if (!p) return p;
+  return {
+    ...p,
+    images: toImages(p.images, p.image),
+    variants: toVariants(p.variants),
+  };
+}
 
 /* ---------------- 认证中间件 ---------------- */
 function authRequired(req, res, next) {
@@ -73,57 +113,70 @@ app.get('/api/products', async (req, res) => {
   } else {
     rows = await db.query('SELECT * FROM products ORDER BY id DESC');
   }
-  res.json({ products: rows });
+  res.json({ products: rows.map(parseProduct) });
 });
 
 // 详情（公开）
 app.get('/api/products/:id', async (req, res) => {
   const rows = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Product not found' });
-  res.json({ product: rows[0] });
+  res.json({ product: parseProduct(rows[0]) });
 });
 
 // 新增（管理员）
 app.post('/api/products', authRequired, adminOnly, async (req, res) => {
-  const { name, category, price, description, image, stock } = req.body || {};
+  const { name, category, price, description, image, images, variants, stock } = req.body || {};
   if (!name || !String(name).trim()) {
     return res.status(400).json({ error: 'Product name is required' });
   }
+  const imgList = toImages(images, image);
+  if (!imgList.length) {
+    return res.status(400).json({ error: 'Please upload at least 1 main image' });
+  }
   const { id } = await db.run(
-    'INSERT INTO products (name, category, price, description, image, stock) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO products (name, category, price, description, image, images, variants, stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [
       String(name).trim(),
       category || 'chess-timer',
       Number(price) || 0,
       description || '',
-      image || '',
+      imgList[0],
+      JSON.stringify(imgList),
+      JSON.stringify(toVariants(variants)),
       Number(stock) || 0,
     ]
   );
   const rows = await db.query('SELECT * FROM products WHERE id = ?', [id]);
-  res.status(201).json({ product: rows[0] });
+  res.status(201).json({ product: parseProduct(rows[0]) });
 });
 
 // 更新（管理员）
 app.put('/api/products/:id', authRequired, adminOnly, async (req, res) => {
   const exist = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
   if (!exist[0]) return res.status(404).json({ error: 'Product not found' });
-  const p = exist[0];
+  const p = parseProduct(exist[0]);
   const b = req.body || {};
+  const hasNewImages = b.images !== undefined || b.image !== undefined;
+  const imgList = hasNewImages ? toImages(b.images, b.image) : p.images;
+  if (!imgList.length) {
+    return res.status(400).json({ error: 'Please upload at least 1 main image' });
+  }
   await db.run(
-    `UPDATE products SET name = ?, category = ?, price = ?, description = ?, image = ?, stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    `UPDATE products SET name = ?, category = ?, price = ?, description = ?, image = ?, images = ?, variants = ?, stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
     [
       b.name !== undefined ? String(b.name).trim() : p.name,
       b.category !== undefined ? b.category : p.category,
       b.price !== undefined ? Number(b.price) || 0 : p.price,
       b.description !== undefined ? b.description : p.description,
-      b.image !== undefined ? b.image : p.image,
+      imgList[0],
+      JSON.stringify(imgList),
+      JSON.stringify(b.variants !== undefined ? toVariants(b.variants) : p.variants),
       b.stock !== undefined ? Number(b.stock) || 0 : p.stock,
       req.params.id,
     ]
   );
   const rows = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
-  res.json({ product: rows[0] });
+  res.json({ product: parseProduct(rows[0]) });
 });
 
 // 删除（管理员）
@@ -144,6 +197,11 @@ const frontendDir = path.join(__dirname, '..', 'frontend');
 if (fs.existsSync(frontendDir)) {
   app.use(express.static(frontendDir));
   app.get(/^\/(?!api\/).*/, (req, res) => {
+    // 存在的静态页面（如 product.html）直接返回，其余路由回退首页
+    const candidate = path.join(frontendDir, req.path);
+    if (!req.path.includes('..') && fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+      return res.sendFile(candidate);
+    }
     res.sendFile(path.join(frontendDir, 'index.html'));
   });
 }

@@ -129,6 +129,8 @@ async function initSchema() {
         price NUMERIC(10,2) NOT NULL DEFAULT 0,
         description TEXT DEFAULT '',
         image TEXT DEFAULT '',
+        images TEXT DEFAULT '[]',
+        variants TEXT DEFAULT '[]',
         stock INTEGER NOT NULL DEFAULT 0,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -150,10 +152,36 @@ async function initSchema() {
         price REAL NOT NULL DEFAULT 0,
         description TEXT DEFAULT '',
         image TEXT DEFAULT '',
+        images TEXT DEFAULT '[]',
+        variants TEXT DEFAULT '[]',
         stock INTEGER NOT NULL DEFAULT 0,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       )`);
+  }
+
+  // 平滑迁移：旧库补列（幂等）
+  await ensureColumn('products', 'images', "TEXT DEFAULT '[]'");
+  await ensureColumn('products', 'variants', "TEXT DEFAULT '[]'");
+}
+
+/** 若表中缺少某列则补上（SQLite 用 pragma，PostgreSQL 用 information_schema） */
+async function ensureColumn(table, column, definition) {
+  const db = impl;
+  let has = false;
+  if (usePg) {
+    const rows = await db.query(
+      'SELECT 1 FROM information_schema.columns WHERE table_name = ? AND column_name = ?',
+      [table, column]
+    );
+    has = rows.length > 0;
+  } else {
+    const rows = await db.query(`PRAGMA table_info(${table})`);
+    has = rows.some((r) => r.name === column);
+  }
+  if (!has) {
+    await db.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    console.log(`[db] 迁移: ${table}.${column} 列已添加`);
   }
 }
 

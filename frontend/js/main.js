@@ -1,7 +1,7 @@
 /**
  * 首页逻辑：商品动态加载、分类过滤、导航与动画
  */
-import { detectApiBase, api, renderNavUser, escapeHtml } from './api.js';
+import { detectApiBase, api, renderNavUser, escapeHtml, productImage } from './api.js';
 
 const CAT_ICON = { 'chess-timer': '⏱', 'chess-set': '♟', apparel: '♞' };
 const CAT_LABEL = { 'chess-timer': 'CHESS TIMER', 'chess-set': 'CHESS SET', apparel: 'APPAREL & GEAR' };
@@ -16,24 +16,27 @@ async function loadProducts(category = '') {
       grid.innerHTML = '<div class="loading">No products in this category yet — waiting for the admin to upload.</div>';
       return;
     }
-    grid.innerHTML = products.map((p) => `
+    grid.innerHTML = products.map((p) => {
+      const img = productImage(p);
+      return `
       <article class="product-card">
-        <div class="product-img">
-          ${p.image
-            ? `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" loading="lazy" />`
+        <a class="product-img" href="product.html?id=${p.id}" aria-label="View details">
+          ${img
+            ? `<img src="${escapeHtml(img)}" alt="${escapeHtml(p.name)}" loading="lazy" />`
             : (CAT_ICON[p.category] || '♟')}
-        </div>
+        </a>
         <div class="product-body">
           <span class="product-cat">${CAT_LABEL[p.category] || p.category}</span>
-          <h3 class="product-name">${escapeHtml(p.name)}</h3>
+          <h3 class="product-name"><a href="product.html?id=${p.id}">${escapeHtml(p.name)}</a></h3>
           <p class="product-desc">${escapeHtml(p.description || '')}</p>
           <div class="product-foot">
             <span class="product-price">$ ${Number(p.price).toFixed(2)}</span>
-            <span class="product-stock">Stock: ${p.stock}</span>
+            <a class="product-more" href="product.html?id=${p.id}">View Details →</a>
           </div>
         </div>
       </article>
-    `).join('');
+    `;
+    }).join('');
   } catch (err) {
     grid.innerHTML = `<div class="loading">Failed to load: ${escapeHtml(err.message)}<br>Please make sure the backend service is running (port 3000).</div>`;
   }

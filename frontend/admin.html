@@ -53,17 +53,18 @@
           <label>Price ($)
             <input type="number" id="pPrice" min="0" step="0.01" placeholder="0.00" />
           </label>
-          <label>Stock
-            <input type="number" id="pStock" min="0" step="1" placeholder="0" />
-          </label>
         </div>
         <label>Description
           <textarea id="pDesc" rows="3" placeholder="One line about what makes it great…"></textarea>
         </label>
-        <label>Image (file will be embedded and stored in the database)
-          <input type="file" id="pImage" accept="image/*" />
+        <label>Images — up to 10, at least 1 main image required (first = cover, files are embedded into the database)
+          <input type="file" id="pImages" accept="image/*" multiple />
         </label>
-        <div class="img-preview hidden" id="imgPreview"></div>
+        <div class="img-gallery" id="imgGallery"></div>
+        <label>Color &amp; Style Variants — optional; each variant can carry its own gallery
+          <button class="btn btn-small btn-ghost" type="button" id="addVariantBtn">+ Add Variant</button>
+        </label>
+        <div class="variant-list" id="variantList"></div>
         <p class="form-msg" id="formMsg"></p>
         <div class="form-actions">
           <button class="btn btn-primary" type="submit" id="submitBtn">Save Product</button>
@@ -80,7 +81,7 @@
         <div class="table-wrap">
           <table class="admin-table">
             <thead>
-              <tr><th>ID</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr>
+              <tr><th>ID</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Variants</th><th>Actions</th></tr>
             </thead>
             <tbody id="productRows">
               <tr><td colspan="7" class="loading">Loading…</td></tr>

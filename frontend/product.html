@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product · LeapChess</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ============ Nav ============ -->
+  <nav class="nav">
+    <a class="brand" href="index.html">
+      <span class="brand-icon">♞</span>
+      <span class="brand-name">LeapChess</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="index.html#shop">Shop</a>
+      <a href="index.html#why">Why Leap</a>
+      <a href="index.html#journey">Our Journey</a>
+      <span id="navUserSlot"></span>
+      <a class="btn btn-small" href="login.html" id="navLoginBtn">Sign In</a>
+    </div>
+  </nav>
+
+  <!-- ============ Product detail ============ -->
+  <main class="section pd-wrap" id="pdWrap">
+    <div class="loading" id="pdLoading">Loading product… ♟</div>
+  </main>
+
+  <!-- ============ Footer ============ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-icon">♞</span>
+        <div>
+          <b>LeapChess</b>
+          <p>Precision for Players, by Players.</p>
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="index.html#shop">Shop</a>
+        <a href="index.html#why">Why Leap</a>
+        <a href="index.html#journey">Our Journey</a>
+        <a href="login.html">Sign In</a>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> LeapChess · Full-stack demo: frontend + backend + database</div>
+  </footer>
+
+  <script type="module" src="js/product.js"></script>
+</body>
+</html>

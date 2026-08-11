@@ -3,6 +3,7 @@ node_modules/
 Thumbs.db
 *.log
 .gh-cli/
+.qoder/
 
 # 本地 SQLite 数据（仅开发环境，生产使用 PostgreSQL）
 backend/data/
