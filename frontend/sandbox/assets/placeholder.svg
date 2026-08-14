@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Sandbox placeholder image">
+  <rect width="400" height="300" fill="#242019"/>
+  <g fill="#1c1916">
+    <rect x="0" y="0" width="50" height="50"/><rect x="100" y="0" width="50" height="50"/><rect x="200" y="0" width="50" height="50"/><rect x="300" y="0" width="50" height="50"/>
+    <rect x="50" y="50" width="50" height="50"/><rect x="150" y="50" width="50" height="50"/><rect x="250" y="50" width="50" height="50"/><rect x="350" y="50" width="50" height="50"/>
+    <rect x="0" y="100" width="50" height="50"/><rect x="100" y="100" width="50" height="50"/><rect x="200" y="100" width="50" height="50"/><rect x="300" y="100" width="50" height="50"/>
+    <rect x="50" y="150" width="50" height="50"/><rect x="150" y="150" width="50" height="50"/><rect x="250" y="150" width="50" height="50"/><rect x="350" y="150" width="50" height="50"/>
+    <rect x="0" y="200" width="50" height="50"/><rect x="100" y="200" width="50" height="50"/><rect x="200" y="200" width="50" height="50"/><rect x="300" y="200" width="50" height="50"/>
+    <rect x="50" y="250" width="50" height="50"/><rect x="150" y="250" width="50" height="50"/><rect x="250" y="250" width="50" height="50"/><rect x="350" y="250" width="50" height="50"/>
+  </g>
+  <text x="200" y="165" font-size="96" text-anchor="middle" fill="#d4af37">♞</text>
+  <text x="200" y="230" font-size="20" text-anchor="middle" fill="#cfc4ae" font-family="Georgia, serif">SANDBOX MOCK IMAGE</text>
+</svg>

@@ -65,9 +65,15 @@ export function renderNavUser() {
   if (!slot) return;
   const user = getUser();
   if (!user) return;
+  // --- SANDBOX_REDIRECT (start) --- C001 测试账号显示沙箱引导入口；移除沙箱时删除本段与下方 ${sandboxBtn} 即可还原
+  const sandboxBtn = user.username === 'C001'
+    ? '<a class="btn btn-small btn-primary" href="sandbox/portal.html" title="前端设计验证沙箱">UI Sandbox ♟</a>'
+    : '';
+  // --- SANDBOX_REDIRECT (end) ---
   slot.innerHTML = `
     <span class="nav-user">♟ <b>${escapeHtml(user.username)}</b> (${user.role === 'admin' ? 'Super Admin' : 'Customer'})</span>
     ${user.role === 'admin' ? '<a class="btn btn-small btn-primary" href="admin.html">Admin Panel</a>' : ''}
+    ${sandboxBtn}
     <a href="#" class="btn btn-small btn-ghost" id="logoutBtn">Sign Out</a>
   `;
   const loginBtn = document.getElementById('navLoginBtn');

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sandbox Portal · LeapChess 前端设计验证</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* 入口页专属样式（仅沙箱内使用） */
+    .portal-body { min-height: 100vh; padding: 60px 6vw 90px; }
+    .portal-head { max-width: 860px; margin: 0 auto 40px; text-align: center; }
+    .portal-head h1 { font-family: var(--serif); font-size: clamp(28px, 4vw, 44px); margin: 14px 0 10px; }
+    .portal-head p { color: var(--ivory-dim); line-height: 1.7; }
+    .portal-tag {
+      display: inline-block; padding: 5px 14px; border-radius: 999px;
+      border: 1px solid rgba(212, 175, 55, .5); color: var(--gold-soft);
+      font-size: 12px; letter-spacing: .12em;
+    }
+    .portal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; max-width: 1080px; margin: 0 auto 56px; }
+    .proto-card {
+      display: flex; flex-direction: column; gap: 10px;
+      background: var(--panel); border: 1px solid rgba(212, 175, 55, .18);
+      border-radius: var(--radius); padding: 24px;
+      transition: all .25s;
+    }
+    .proto-card:hover { transform: translateY(-6px); border-color: rgba(212, 175, 55, .45); }
+    .proto-card h3 { font-family: var(--serif); color: var(--ivory); }
+    .proto-card p { color: var(--ivory-dim); font-size: 14px; line-height: 1.6; flex: 1; }
+    .proto-status { font-size: 12px; letter-spacing: .1em; }
+    .proto-status.exp { color: var(--gold-soft); }
+    .proto-status.candidate { color: var(--ok); }
+    .proto-status.dropped { color: var(--danger); }
+    .portal-rules { max-width: 860px; margin: 0 auto; color: var(--ivory-dim); font-size: 14px; line-height: 1.9; }
+    .portal-rules h2 { font-family: var(--serif); color: var(--ivory); font-size: 20px; margin-bottom: 10px; }
+    .portal-rules code { background: rgba(212, 175, 55, .12); padding: 2px 6px; border-radius: 6px; color: var(--gold-soft); }
+  </style>
+</head>
+<body>
+  <div class="portal-body">
+
+    <!-- ============ 头部 ============ -->
+    <div class="portal-head">
+      <span class="portal-tag">♞ SANDBOX PORTAL · 纯静态 · 零 API 调用</span>
+      <h1>LeapChess 前端设计验证入口</h1>
+      <p>
+        本目录用于安全验证新的 UI 设计方案：全部页面为纯静态原型，使用内嵌演示数据，
+        不调用任何后端接口、不依赖登录态。选择一个原型开始体验。
+      </p>
+      <div style="margin-top: 18px;">
+        <a class="btn btn-ghost" href="../index.html">← 返回主站</a>
+      </div>
+    </div>
+
+    <!-- ============ 原型列表（新增原型时在此登记） ============ -->
+    <div class="portal-grid">
+      <a class="proto-card" href="prototype-a.html">
+        <span class="proto-status exp">● 实验中</span>
+        <h3>Prototype A · 首页改版基线</h3>
+        <p>基于主站 index.html 净化而来的示例原型：保留主站视觉骨架，商品区改用 mock 数据纯本地渲染，验证沙箱工作流本身。</p>
+        <span class="btn btn-small btn-primary">进入体验 →</span>
+      </a>
+      <!-- 新原型登记模板：
+      <a class="proto-card" href="prototype-b.html">
+        <span class="proto-status exp">● 实验中</span>
+        <h3>Prototype B · 方案名称</h3>
+        <p>一句话说明设计要点。</p>
+        <span class="btn btn-small btn-primary">进入体验 →</span>
+      </a>
+      -->
+    </div>
+
+    <!-- ============ 方案对比表（验证结论登记处） ============ -->
+    <div class="portal-rules" style="margin-bottom: 56px;">
+      <h2>方案对比表</h2>
+      <table class="admin-table" style="width: 100%;">
+        <thead>
+          <tr><th>方案</th><th>设计要点</th><th>状态</th><th>结论</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Prototype A</td>
+            <td>主站基线 + mock 数据，验证沙箱工作流</td>
+            <td>实验中</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top: 10px;">状态取值：实验中 · 候选 · 采纳 · 废弃。采纳/废弃结论由人工决策后登记。</p>
+    </div>
+
+    <!-- ============ 边界提醒 ============ -->
+    <div class="portal-rules">
+      <h2>沙箱边界（开发前必读）</h2>
+      <ul>
+        <li>全部沙箱代码仅存在于 <code>frontend/sandbox/</code>，严禁在此目录外创建测试页面。</li>
+        <li>沙箱页面禁止 <code>fetch</code>、禁止引用 <code>frontend/js/api.js</code>、禁止读写 <code>lc_token</code> / <code>lc_user</code>。</li>
+        <li>内部跳转链接必须带 <code>.html</code> 后缀（否则会被主站 catch-all 路由带回首页）。</li>
+        <li>禁止修改 <code>backend/</code>、主站页面、<code>frontend/js/</code>、<code>frontend/css/style.css</code> 与 Dockerfile。</li>
+        <li>完整规范见知识库文档《前端沙箱开发规范（纯静态设计验证）》。</li>
+      </ul>
+    </div>
+
+  </div>
+</body>
+</html>
