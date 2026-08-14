@@ -71,7 +71,8 @@ async function connect() {
   // ---------- SQLite（sql.js，纯 WASM） ----------
   const initSqlJs = require('sql.js');
   const SQL = await initSqlJs();
-  const dataDir = path.join(__dirname, 'data');
+  // 数据目录优先读 DATA_DIR 环境变量（Zeabur 上指向挂载的 Volume，如 /data），未设置时回退到本目录 backend/data
+  const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
   fs.mkdirSync(dataDir, { recursive: true });
   const dbFile = path.join(dataDir, 'leapchess.db');
   dbFilePath = dbFile;

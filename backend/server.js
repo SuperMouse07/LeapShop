@@ -222,10 +222,14 @@ if (fs.existsSync(frontendDir)) {
 (async () => {
   await connect();
   if (!usePg) {
-    console.warn(
-      '[leapchess] 警告: 未检测到 DATABASE_URL/PGHOST，当前使用 SQLite 回退。' +
-      'Zeabur 文件系统无状态，重新部署会丢失 SQLite 数据，生产环境请添加 PostgreSQL 服务并注入 DATABASE_URL。'
-    );
+    if (process.env.DATA_DIR) {
+      console.log(`[leapchess] SQLite 数据目录: ${process.env.DATA_DIR}（已启用 Volume 持久化）`);
+    } else {
+      console.warn(
+        '[leapchess] 警告: 未检测到 DATABASE_URL/PGHOST，当前使用 SQLite 回退。' +
+        'Zeabur 文件系统无状态，重新部署会丢失 SQLite 数据，生产环境请添加 PostgreSQL 服务并注入 DATABASE_URL，或挂载 Volume 并设置 DATA_DIR。'
+      );
+    }
   }
   await initSchema();
   await seed(); // 幂等：仅当缺失时写入预设账户与占位商品
