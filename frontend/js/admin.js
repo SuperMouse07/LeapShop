@@ -5,6 +5,7 @@ import { detectApiBase, api, getToken, renderNavUser, escapeHtml, productImage }
 
 const CAT_LABEL = { 'chess-timer': 'Chess Timer', 'chess-set': 'Chess Set', apparel: 'Apparel & Gear' };
 const MAX_IMAGES = 10;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 单张图片大小上限 5MB
 const $ = (id) => document.getElementById(id);
 
 let pendingImages = [];   // product gallery (base64 data URLs), first = main image
@@ -203,7 +204,7 @@ $('imgGallery').addEventListener('click', (e) => {
   }
 });
 
-/* Image files → base64 (1.5MB each, 10 in total) */
+/* Image files → base64 (5MB each, 10 in total) */
 $('pImages').addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []);
   e.target.value = '';
@@ -213,8 +214,8 @@ $('pImages').addEventListener('change', async (e) => {
       setMsg(`Max ${MAX_IMAGES} images per product — extra files were skipped.`, false);
       break;
     }
-    if (file.size > 1.5 * 1024 * 1024) {
-      setMsg(`"${file.name}" is too large (max 1.5MB) and was skipped.`, false);
+    if (file.size > MAX_IMAGE_SIZE) {
+      setMsg(`"${file.name}" is too large (max 5MB) and was skipped.`, false);
       continue;
     }
     const dataUrl = await new Promise((resolve) => {
@@ -298,8 +299,8 @@ $('variantList').addEventListener('change', (e) => {
   if (e.target.classList.contains('v-file')) {
     Array.from(e.target.files || []).forEach((file) => {
       if (pendingVariants[i].images.length >= MAX_IMAGES) return;
-      if (file.size > 1.5 * 1024 * 1024) {
-        setMsg(`"${file.name}" is too large (max 1.5MB) and was skipped.`, false);
+      if (file.size > MAX_IMAGE_SIZE) {
+        setMsg(`"${file.name}" is too large (max 5MB) and was skipped.`, false);
         return;
       }
       const reader = new FileReader();
