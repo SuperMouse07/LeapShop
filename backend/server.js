@@ -6,6 +6,7 @@
  */
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -18,6 +19,9 @@ const PORT = Number(process.env.PORT || 3000); // Zeabur 会注入 PORT（默认
 const JWT_SECRET = process.env.JWT_SECRET || 'leapchess-dev-secret-change-me';
 const TOKEN_TTL = '12h';
 const MAX_IMAGES = 10; // 每件商品（含变体图集）最多图片数
+// 图片文件目录：生产指向 Zeabur 挂载的 Volume（如 /data/uploads），本地回退 backend/data/uploads
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'data', 'uploads');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const app = express();
 app.use(cors());
@@ -60,6 +64,84 @@ function parseProduct(p) {
     images: toImages(p.images, p.image),
     variants: toVariants(p.variants),
   };
+}
+
+/* ---------------- 图片落盘（数据库只存 URL 引用） ---------------- */
+const DATA_URL_RE = /^data:image\/(png|jpe?g|webp|gif);base64,([\s\S]+)$/;
+
+/** base64 图片写入磁盘，以内容哈希命名（天然去重、迁移幂等），返回 /uploads/... URL */
+function saveDataUrl(dataUrl) {
+  const m = DATA_URL_RE.exec(dataUrl);
+  if (!m) return null;
+  try {
+    const buf = Buffer.from(m[2], 'base64');
+    if (!buf.length) return null;
+    const hash = crypto.createHash('sha1').update(buf).digest('hex');
+    const ext = m[1].toLowerCase() === 'jpeg' ? 'jpg' : m[1].toLowerCase();
+    const sub = hash.slice(0, 2);
+    const abs = path.join(UPLOAD_DIR, sub, `${hash}.${ext}`);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    if (!fs.existsSync(abs)) fs.writeFileSync(abs, buf);
+    return `/uploads/${sub}/${hash}.${ext}`;
+  } catch {
+    return null;
+  }
+}
+
+/** 图片列表物化：data URL 落盘转 URL，已有 URL 原样保留 */
+function materializeImages(list) {
+  return list.map((src) =>
+    typeof src === 'string' && src.startsWith('data:') ? saveDataUrl(src) || src : src
+  );
+}
+
+function materializeVariants(variants) {
+  return variants.map((v) => ({ ...v, images: materializeImages(v.images) }));
+}
+
+/** 收集商品引用的全部 /uploads URL（主图 + 变体图集） */
+function productUploadUrls(p) {
+  const urls = [];
+  for (const src of p.images || []) {
+    if (typeof src === 'string' && src.startsWith('/uploads/')) urls.push(src);
+  }
+  for (const v of p.variants || []) {
+    for (const src of v.images || []) {
+      if (typeof src === 'string' && src.startsWith('/uploads/')) urls.push(src);
+    }
+  }
+  return urls;
+}
+
+/** best-effort 清理不再被任何商品引用的磁盘文件（内容哈希去重下安全） */
+async function removeUnreferenced(urls) {
+  try {
+    const rows = await db.query('SELECT images, variants FROM products');
+    for (const url of new Set(urls)) {
+      const referenced = rows.some(
+        (r) => String(r.images || '').includes(url) || String(r.variants || '').includes(url)
+      );
+      if (referenced) continue;
+      const abs = path.join(UPLOAD_DIR, url.slice('/uploads/'.length));
+      if (fs.existsSync(abs)) fs.unlinkSync(abs);
+    }
+  } catch (err) {
+    console.warn('[leapchess] 图片文件清理失败（忽略）:', err.message);
+  }
+}
+
+/** 递归统计目录占用（字节） */
+function dirSize(dir) {
+  try {
+    let total = 0;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      total += entry.isDirectory() ? dirSize(full) : fs.statSync(full).size;
+    }
+    return total;
+  } catch {
+    return 0;
+  }
 }
 
 /* ---------------- 认证中间件 ---------------- */
@@ -129,7 +211,7 @@ app.post('/api/products', authRequired, adminOnly, async (req, res) => {
   if (!name || !String(name).trim()) {
     return res.status(400).json({ error: 'Product name is required' });
   }
-  const imgList = toImages(images, image);
+  const imgList = materializeImages(toImages(images, image));
   if (!imgList.length) {
     return res.status(400).json({ error: 'Please upload at least 1 main image' });
   }
@@ -142,7 +224,7 @@ app.post('/api/products', authRequired, adminOnly, async (req, res) => {
       description || '',
       imgList[0],
       JSON.stringify(imgList),
-      JSON.stringify(toVariants(variants)),
+      JSON.stringify(materializeVariants(toVariants(variants))),
       Number(stock) || 0,
     ]
   );
@@ -156,11 +238,13 @@ app.put('/api/products/:id', authRequired, adminOnly, async (req, res) => {
   if (!exist[0]) return res.status(404).json({ error: 'Product not found' });
   const p = parseProduct(exist[0]);
   const b = req.body || {};
+  const oldUrls = productUploadUrls(p);
   const hasNewImages = b.images !== undefined || b.image !== undefined;
-  const imgList = hasNewImages ? toImages(b.images, b.image) : p.images;
+  const imgList = materializeImages(hasNewImages ? toImages(b.images, b.image) : p.images);
   if (!imgList.length) {
     return res.status(400).json({ error: 'Please upload at least 1 main image' });
   }
+  const variantList = b.variants !== undefined ? materializeVariants(toVariants(b.variants)) : p.variants;
   await db.run(
     `UPDATE products SET name = ?, category = ?, price = ?, description = ?, image = ?, images = ?, variants = ?, stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
     [
@@ -170,31 +254,35 @@ app.put('/api/products/:id', authRequired, adminOnly, async (req, res) => {
       b.description !== undefined ? b.description : p.description,
       imgList[0],
       JSON.stringify(imgList),
-      JSON.stringify(b.variants !== undefined ? toVariants(b.variants) : p.variants),
+      JSON.stringify(variantList),
       b.stock !== undefined ? Number(b.stock) || 0 : p.stock,
       req.params.id,
     ]
   );
+  await removeUnreferenced(oldUrls); // 旧图被替换后，仅当无其他商品引用才删除文件
   const rows = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
   res.json({ product: parseProduct(rows[0]) });
 });
 
 // 删除（管理员）
 app.delete('/api/products/:id', authRequired, adminOnly, async (req, res) => {
-  const exist = await db.query('SELECT id FROM products WHERE id = ?', [req.params.id]);
+  const exist = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
   if (!exist[0]) return res.status(404).json({ error: 'Product not found' });
+  const urls = productUploadUrls(parseProduct(exist[0]));
   await db.run('DELETE FROM products WHERE id = ?', [req.params.id]);
+  await removeUnreferenced(urls);
   res.json({ ok: true });
 });
 
 /* ---------------- 存储统计（管理员） ---------------- */
 app.get('/api/stats/storage', authRequired, adminOnly, async (req, res) => {
-  const { totalBytes, productBytes } = await storageStats();
+  const { totalBytes: dbBytes, productBytes: dbProductBytes } = await storageStats();
+  const uploadBytes = dirSize(UPLOAD_DIR); // 图片文件落盘占用（生产为 Volume 挂载点）
   const [{ c }] = await db.query('SELECT COUNT(*) AS c FROM products');
   res.json({
     dbType: db.type,
-    totalBytes,
-    productBytes,
+    totalBytes: dbBytes + uploadBytes,
+    productBytes: dbProductBytes + uploadBytes,
     productCount: Number(c),
   });
 });
@@ -203,6 +291,9 @@ app.get('/api/stats/storage', authRequired, adminOnly, async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', db: db.type, time: new Date().toISOString() });
 });
+
+/* ---------------- 上传图片静态服务（内容哈希命名，可长缓存） ---------------- */
+app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true }));
 
 /* ---------------- 静态前端（单服务模式） ---------------- */
 const frontendDir = path.join(__dirname, '..', 'frontend');
@@ -233,6 +324,7 @@ if (fs.existsSync(frontendDir)) {
   }
   await initSchema();
   await seed(); // 幂等：仅当缺失时写入预设账户与占位商品
+  console.log(`[leapchess] 图片目录: ${UPLOAD_DIR}${process.env.UPLOAD_DIR ? '（Volume）' : ''}`);
   app.listen(PORT, () => {
     console.log(`[leapchess] API 已启动: http://localhost:${PORT} (数据库: ${usePg ? 'PostgreSQL' : 'SQLite'})`);
   });

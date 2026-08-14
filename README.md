@@ -67,7 +67,7 @@ node backend\test-crud.js                                       # 中文数据 C
 | GET | `/api/health` | 公开 | 健康检查（含数据库类型） |
 
 写操作需要请求头 `Authorization: Bearer <token>`；客户角色调用写接口返回 `403`。
-商品图片以 base64 内嵌存储于数据库（单张上限 1.5MB，每件商品最多 10 张，至少 1 张主图），适配 Zeabur 无状态文件系统。
+商品图片落盘存储于图片目录（生产为 Zeabur Volume 挂载点，由 `UPLOAD_DIR` 指定；本地默认 `backend/data/uploads`），数据库仅保存 `/uploads/...` URL 引用；文件以内容哈希命名，自动去重（每件商品最多 10 张，至少 1 张主图）。
 商品支持颜色/款式变体（`variants`），每个变体可携带独立图集；详情页（`/product.html?id=<id>`）左侧轮播展示图片、右侧展示名称/价格/描述与变体选择。
 
 ## Zeabur 部署（针对 Zeabur 平台特性适配）
