@@ -63,12 +63,12 @@ node backend\test-crud.js                                       # 中文数据 C
 | POST | `/api/products` | 管理员 | 新增商品 |
 | PUT | `/api/products/:id` | 管理员 | 更新商品 |
 | DELETE | `/api/products/:id` | 管理员 | 删除商品 |
-| GET | `/api/stats/storage` | 管理员 | 存储统计（数据库总占用 / 商品数据占用 / 商品数 / 图片文件数与磁盘占用 / 数据库开销占比） |
+| GET | `/api/stats/storage` | 管理员 | 存储统计（数据库总占用 / 商品数据占用 / 商品数 / 图片文件数与磁盘占用 / 数据库开销占比 / 磁盘容量与剩余） |
 | GET | `/api/products/:id/storage` | 管理员 | 单商品存储明细（图片文件数 / 磁盘字节 / JSON 字节 / 合计） |
 | GET | `/api/health` | 公开 | 健康检查（含数据库类型） |
 
 写操作需要请求头 `Authorization: Bearer <token>`；客户角色调用写接口返回 `403`。
-商品图片落盘存储于图片目录（生产为 Zeabur Volume 挂载点，由 `UPLOAD_DIR` 指定；本地默认 `backend/data/uploads`），数据库仅保存 `/uploads/...` URL 引用；文件以内容哈希命名，自动去重（每件商品最多 10 张，至少 1 张主图）。
+商品图片落盘存储于图片目录（生产为 Zeabur Volume 挂载点，由 `UPLOAD_DIR` 指定；本地默认 `backend/data/uploads`），数据库仅保存 `/uploads/...` URL 引用；文件以内容哈希命名，自动去重（每件商品最多 10 张，至少 1 张主图；前端单张大小上限 5MB，上传后随保存请求一并落盘）。
 商品支持颜色/款式变体（`variants`），每个变体可携带独立图集；详情页（`/product.html?id=<id>`）左侧轮播展示图片、右侧展示名称/价格/描述与变体选择。
 
 ## Zeabur 部署（针对 Zeabur 平台特性适配）
@@ -79,6 +79,7 @@ node backend\test-crud.js                                       # 中文数据 C
 - **内网数据库免 SSL**：`pg` 连接默认不启用 SSL（Zeabur 内网 PG 不支持 SSL，强开会报
   "The server does not support SSL connections"）；连外部托管库时用 `PGSSL=true` 或在 URL 加 `sslmode=require`
 - **无状态文件系统**：生产用 PostgreSQL；若未注入数据库变量会回退 SQLite 并在启动日志警告
+- **图片持久化**：图片文件存于 Zeabur Volume（挂载 `/data`，设 `UPLOAD_DIR=/data/uploads`）；启动时自检该目录是否在挂载点上，不是则打印警告（防止图片落在临时盘随部署丢失）
 - **健康检查**：`/api/health` + Dockerfile HEALTHCHECK
 - **纯 JS 依赖**：无 native 模块（sql.js 为 WASM，且生产走 pg），构建无需 C++ 工具链
 
@@ -88,8 +89,9 @@ node backend\test-crud.js                                       # 中文数据 C
 2. **Add Service → Git**：选择本仓库（分支 `main`），Zeabur 自动识别根目录 `Dockerfile` 构建
 3. 点开应用服务 → **Variables** 页签：Zeabur 会自动注入 `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE` 与 `PORT`（悬停可见，无需手填）。
    若希望显式用连接串，可添加 `DATABASE_URL`，值引用 `${POSTGRES_URI}`（Zeabur 变量引用语法）
-4. 建议添加环境变量 `JWT_SECRET`（随机字符串，避免使用代码内置默认值）
-5. **Networking → Generate Domain** 生成 `.zeabur.app` 域名，或绑定自定义域名（自动 HTTPS）
+4. **图片持久化（必做）**：项目画布 `+` → **Volume** 创建硬盘并挂载到应用服务，挂载目录 `/data`；然后在 Variables 添加 `UPLOAD_DIR=/data/uploads`。只设环境变量不挂盘会导致图片存于临时文件系统，重新部署即丢失
+5. 建议添加环境变量 `JWT_SECRET`（随机字符串，避免使用代码内置默认值）
+6. **Networking → Generate Domain** 生成 `.zeabur.app` 域名，或绑定自定义域名（自动 HTTPS）
 
 应用启动时自动：建表 → 写入 P001/C001 与占位商品 → 监听 `PORT`。每次 git push 自动重新部署，PostgreSQL 数据不受影响。
 
@@ -105,6 +107,8 @@ node backend\test-crud.js                                       # 中文数据 C
 - [x] 登录认证（bcrypt 哈希 + JWT，错误密码返回 401）
 - [x] 角色权限（客户写操作 403，未登录 401，管理员正常 CRUD）
 - [x] 数据持久化（本地 SQLite / Zeabur PostgreSQL，重启不丢数据）
+- [x] 图片落盘存储（Volume + 内容哈希去重，跨部署持久化）
+- [x] 存储统计面板（数据占用与磁盘容量双口径、单商品明细 Tooltip）
 - [x] 健康检查 `/api/health` 返回当前数据库类型
 
 ## 项目结构
