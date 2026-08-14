@@ -59,9 +59,11 @@ async function loadStats() {
     $('statImgCount').textContent = typeof s.imageFileCount === 'number' ? `${s.imageFileCount} file(s)` : '—';
     $('statImgSize').textContent = typeof s.imageFileBytes === 'number' ? formatBytes(s.imageFileBytes) : '—';
     $('statOverhead').textContent = typeof s.overheadRatio === 'number' ? `${s.overheadRatio.toFixed(1)}%` : '—';
+    $('statVolume').textContent = typeof s.volumeTotalBytes === 'number' && s.volumeTotalBytes > 0 ? formatBytes(s.volumeTotalBytes) : '—';
     const pct = s.totalBytes > 0 ? Math.min(100, (s.productBytes / s.totalBytes) * 100) : 0;
     $('statBar').style.width = `${pct}%`;
-    $('statBarLabel').textContent = `Product data takes ${pct.toFixed(1)}% of total storage`;
+    const freeTxt = typeof s.volumeFreeBytes === 'number' && s.volumeFreeBytes > 0 ? ` · Disk free: ${formatBytes(s.volumeFreeBytes)}` : '';
+    $('statBarLabel').textContent = `Product data takes ${pct.toFixed(1)}% of total storage${freeTxt}`;
   } catch {
     $('statBarLabel').textContent = 'Storage stats unavailable';
   }

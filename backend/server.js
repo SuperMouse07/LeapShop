@@ -152,6 +152,15 @@ function dirStats(dir) {
   }
 }
 
+/** 所在文件系统容量统计（Node ≥18.15 的 statfs；挂载点上即 Volume 硬盘容量与剩余） */
+function volumeStats(dir) {
+  if (typeof fs.statfsSync !== 'function') return { totalBytes: 0, freeBytes: 0 };
+  try {
+    const s = fs.statfsSync(dir);
+    return { totalBytes: Number(s.blocks) * Number(s.bsize), freeBytes: Number(s.bavail) * Number(s.bsize) };
+  } catch { return { totalBytes: 0, freeBytes: 0 }; }
+}
+
 /** 解析 /uploads/... URL 对应的磁盘文件并返回字节数（不存在/非法路径计 0） */
 function uploadFileBytes(url) {
   if (typeof url !== 'string' || !url.startsWith('/uploads/')) return 0;
@@ -322,7 +331,8 @@ app.get('/api/stats/storage', authRequired, adminOnly, async (req, res) => {
   const { totalBytes: dbBytes, productBytes: dbProductBytes } = await storageStats();
   const uploads = dirStats(UPLOAD_DIR); // 图片文件落盘占用（生产为 Volume 挂载点）
   const [{ c }] = await db.query('SELECT COUNT(*) AS c FROM products');
-  const totalBytes = dbBytes + uploads.bytes;
+  const totalBytes = dbBytes + uploads.bytes; // 数据实际占用 = 数据库 + 图片文件
+  const volume = volumeStats(UPLOAD_DIR); // 磁盘容量/剩余（与 totalBytes 口径不同：一个是占用，一个是容量）
   // 数据库系统开销 = 库内非商品表部分（目录表/用户表/WAL 等），占比按总体积计算
   const overheadBytes = Math.max(0, dbBytes - dbProductBytes);
   res.json({
@@ -334,6 +344,8 @@ app.get('/api/stats/storage', authRequired, adminOnly, async (req, res) => {
     imageFileBytes: uploads.bytes,
     overheadBytes,
     overheadRatio: totalBytes > 0 ? Number(((overheadBytes / totalBytes) * 100).toFixed(1)) : 0,
+    volumeTotalBytes: volume.totalBytes,
+    volumeFreeBytes: volume.freeBytes,
   });
 });
 
