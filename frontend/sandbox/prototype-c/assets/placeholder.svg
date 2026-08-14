@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="product placeholder">
+  <rect width="400" height="300" fill="#F5F5F4"/>
+  <circle cx="200" cy="140" r="72" fill="none" stroke="#E2E2E0" stroke-width="2"/>
+  <path d="M186 178c2-18-4-24-8-32-10-18 2-38 22-38 18 0 28 14 26 30-1 10-8 16-8 26-0 5 2 9 4 14z" fill="#C9C9C6"/>
+  <rect x="172" y="182" width="56" height="8" rx="4" fill="#C9C9C6"/>
+  <text x="200" y="236" font-family="Helvetica, Arial, sans-serif" font-size="13" letter-spacing="4" fill="#9C9C99" text-anchor="middle">LEAPCHESS</text>
+</svg>

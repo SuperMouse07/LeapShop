@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeapChess — Prototype C · 极简主义白色重构</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♟</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 沙箱环境提示条（正式采纳后移除） -->
+  <div class="sandbox-bar">
+    <span>SANDBOX · Prototype C — 纯静态设计验证，无真实数据</span>
+    <a href="../portal.html">← 返回沙箱入口</a>
+    <a href="../../index.html">主站对照 →</a>
+  </div>
+
+  <!-- 导航 -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#">LEAP<small>CHESS</small></a>
+      <div class="nav-links">
+        <a href="#story">Story</a>
+        <a href="#products">Products</a>
+        <a href="#why">Why Leap</a>
+        <a href="#journey">Journey</a>
+        <a href="#products" class="btn btn-primary" style="padding: 10px 24px;">Shop Now</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <h1 class="fade-in">Built for Grandmasters,<br>Accessible to Everyone.</h1>
+    <p class="sub fade-in d1">Precision for Players, by Players. 从 FIDE 标准计时器到创意棋具，让每一位棋手专注于最重要的事：下一步棋。</p>
+    <div class="hero-actions fade-in d2">
+      <a href="#products" class="btn btn-primary">Shop Now</a>
+      <a href="#story" class="btn btn-ghost">Why Choose Leap</a>
+    </div>
+    <div class="hero-stat fade-in d3">
+      <div class="num" id="statNum"></div>
+      <div class="lbl" id="statLbl"></div>
+    </div>
+  </header>
+
+  <!-- 品牌故事 -->
+  <section class="section" id="story">
+    <div class="story-grid reveal">
+      <div>
+        <div class="kicker">Our Story</div>
+        <h2>Hello Everyone, Meet Your New Clock</h2>
+        <p id="storyIntro"></p>
+        <div class="tagline-row" id="taglineRow"></div>
+      </div>
+      <div class="story-visual">
+        <img src="assets/placeholder.svg" alt="LEAP 产品占位图">
+      </div>
+    </div>
+  </section>
+
+  <!-- 商品 -->
+  <section class="section" id="products">
+    <div class="section-narrow reveal">
+      <div class="kicker">Collections</div>
+      <h2>Find the Move. Beat the Clock.</h2>
+      <p class="lede">赛事级计时器、便携棋具与棋迷周边 —— 全部为对局而生。</p>
+    </div>
+    <div class="section-wide">
+      <div class="filter-row reveal" id="filterRow"></div>
+      <div class="product-grid" id="productGrid"></div>
+    </div>
+  </section>
+
+  <!-- 品牌主张 -->
+  <section class="section" id="why">
+    <div class="section-wide reveal">
+      <div class="section-narrow" style="margin-bottom: 0;">
+        <div class="kicker">Why Choose Leap</div>
+        <h2>Precision for Players, by Players.</h2>
+      </div>
+      <div class="values-grid" id="valuesGrid"></div>
+    </div>
+  </section>
+
+  <!-- 品牌历程 -->
+  <section class="section" id="journey">
+    <div class="section-narrow reveal">
+      <div class="kicker">How We Started</div>
+      <h2>Our Journey</h2>
+    </div>
+    <div class="journey-list reveal" id="journeyList"></div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta reveal">
+    <h2>Equip. Support. Win.</h2>
+    <p class="lede">Cool Stuff for Chess Lovers — 棋不只是游戏，更是一种生活方式。</p>
+    <a href="#products" class="btn btn-primary">Explore the Collection</a>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <span>© 2026 LeapChess · Sandbox Prototype C</span>
+      <span>
+        <a href="../portal.html">沙箱入口</a> ·
+        <a href="../../index.html">主站</a>
+      </span>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { BRAND, CATEGORIES, PRODUCTS, VALUES, JOURNEY, escapeHtml } from './js/mock.js';
+
+    /* ---------- 品牌区 ---------- */
+    document.getElementById('statNum').textContent = BRAND.stat.value;
+    document.getElementById('statLbl').textContent = BRAND.stat.label;
+    document.getElementById('storyIntro').textContent = BRAND.intro;
+    document.getElementById('taglineRow').innerHTML =
+      BRAND.taglines.map(t => `<span>— ${escapeHtml(t)}</span>`).join('');
+
+    /* ---------- 商品渲染与筛选 ---------- */
+    const grid = document.getElementById('productGrid');
+    const filterRow = document.getElementById('filterRow');
+    let activeCat = 'All';
+
+    function renderChips() {
+      filterRow.innerHTML = CATEGORIES.map(cat =>
+        `<button class="chip${cat === activeCat ? ' active' : ''}" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`
+      ).join('');
+    }
+
+    function renderProducts() {
+      const list = activeCat === 'All' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCat);
+      grid.innerHTML = list.length ? list.map(p => `
+        <article class="product-card">
+          <div class="product-img"><img src="assets/placeholder.svg" alt="${escapeHtml(p.name)}"></div>
+          <div class="product-body">
+            <div class="product-name">${escapeHtml(p.name)}</div>
+            <div class="product-desc">${escapeHtml(p.desc)}</div>
+            <div class="product-foot">
+              <span class="product-price">$${p.price.toFixed(2)}</span>
+              ${p.badge ? `<span class="product-badge">${escapeHtml(p.badge)}</span>` : ''}
+            </div>
+          </div>
+        </article>`).join('')
+        : '<p class="empty-hint">该分类暂无商品</p>';
+    }
+
+    filterRow.addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip || chip.dataset.cat === activeCat) return;
+      activeCat = chip.dataset.cat;
+      renderChips();
+      renderProducts();
+    });
+
+    renderChips();
+    renderProducts();
+
+    /* ---------- 品牌主张与历程 ---------- */
+    document.getElementById('valuesGrid').innerHTML = VALUES.map((v, i) => `
+      <div class="value-item">
+        <span class="value-num">0${i + 1}</span>
+        <h3>${escapeHtml(v.title)}</h3>
+        <p>${escapeHtml(v.desc)}</p>
+      </div>`).join('');
+
+    document.getElementById('journeyList').innerHTML = JOURNEY.map(j => `
+      <div class="journey-item">
+        <span class="stage">${escapeHtml(j.year)}</span>
+        <p>${escapeHtml(j.text)}</p>
+      </div>`).join('');
+
+    /* ---------- 滚动显现（600ms 淡入） ---------- */
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('show'); io.unobserve(en.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+</body>
+</html>

@@ -1,10 +1,10 @@
 {
   "id": "prototype-b",
   "name": "Prototype B",
-  "title": "奢华暗夜视觉升级",
-  "description": "由 ui-ux-pro-max skill 驱动：OLED 深黑高对比基底 + 金色渐变 CTA 与价格强调，Why 卡片图标徽章化与深阴影层次，时间线节点卡片化 + 发光连接线，并落实 focus-visible、reduced-motion 与 tabular 价格数字等 UX 规范。",
+  "title": "新野兽派暗夜多页重构",
+  "description": "v2 重构：保留 OLED 暗夜基调，升级为新野兽派视觉（3px 粗边框 / 硬位移阴影 / 亮黄-蓝-红鲜明色块 / 直角硬朗几何 / 超大号大写标题）。单页拆分为四页多页架构：index 概览入口（各区块查看更多跳转）、products 商品列表（分类筛选+徽章）、about 品牌故事与价值主张、journey 时间轴历程；粘性导航含当前页高亮与移动端汉堡菜单，全站共享页脚。纯静态 mock 数据，零 API 调用。",
   "status": "candidate",
   "entry": "index.html",
-  "pages": ["index.html"],
-  "updated": "2026-08-14"
+  "pages": ["index.html", "products.html", "about.html", "journey.html"],
+  "updated": "2026-08-15"
 }

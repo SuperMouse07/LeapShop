@@ -1,0 +1,321 @@
+/* ============================================================
+   Prototype C — 极简主义白色主题（完整独立，不依赖沙箱外任何样式）
+   设计规范：
+   - 主色 #FFFFFF / 文字 #1A1A1A / 强调 #3B82F6（少量）
+   - 标题 PP Neue Montreal 500-700，正文 Inter 400（沙箱禁用外部 CDN，
+     字体未安装时按 fallback 栈降级为系统无衬线）
+   - 留白优先：区块 padding 最小 64px，元素间用留白而非分割线
+   - 动画：600ms 缓慢淡入；hover 颜色渐变过渡
+   - 圆角 8px；阴影 0 4px 12px rgba(0,0,0,0.08)；无背景装饰
+   ============================================================ */
+
+:root {
+  --c-bg: #FFFFFF;
+  --c-ink: #1A1A1A;
+  --c-ink-soft: #555555;
+  --c-ink-faint: #8A8A8A;
+  --c-accent: #3B82F6;
+  --c-accent-deep: #2563EB;
+  --c-line: #ECECEC;
+  --c-surface: #FAFAFA;
+  --c-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --c-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.10);
+  --r: 8px;
+  --font-head: 'PP Neue Montreal', 'Neue Haas Unica', 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-body: 'Inter', 'Helvetica Neue', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-head);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+img { display: block; max-width: 100%; }
+
+a { color: inherit; text-decoration: none; }
+
+/* ---------- 淡入动画：600ms ---------- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in { animation: fadeInUp 600ms var(--ease) both; }
+.fade-in.d1 { animation-delay: 120ms; }
+.fade-in.d2 { animation-delay: 240ms; }
+.fade-in.d3 { animation-delay: 360ms; }
+
+/* 滚动显现（IntersectionObserver 添加 .show） */
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity 600ms var(--ease), transform 600ms var(--ease); }
+.reveal.show { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in, .reveal { animation: none; transition: none; opacity: 1; transform: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* ---------- 导航 ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--c-line);
+}
+
+.nav-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.brand {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.14em;
+}
+
+.brand small { font-weight: 500; color: var(--c-ink-faint); letter-spacing: 0.02em; margin-left: 8px; }
+
+.nav-links { display: flex; align-items: center; gap: 36px; }
+
+.nav-links a {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--c-ink-soft);
+  transition: color 300ms var(--ease);
+}
+
+.nav-links a:hover { color: var(--c-ink); }
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: inline-block;
+  padding: 14px 32px;
+  border-radius: var(--r);
+  font-family: var(--font-head);
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 300ms var(--ease), color 300ms var(--ease), border-color 300ms var(--ease);
+}
+
+.btn-primary { background: var(--c-ink); color: #FFFFFF; }
+.btn-primary:hover { background: var(--c-accent-deep); }
+
+.btn-ghost { background: transparent; color: var(--c-ink); border-color: var(--c-line); }
+.btn-ghost:hover { border-color: var(--c-ink); }
+
+.btn-link { padding: 14px 0; color: var(--c-accent); }
+.btn-link:hover { color: var(--c-accent-deep); }
+
+/* ---------- 通用区块：留白 ≥ 64px ---------- */
+.section { padding: 96px 32px; }
+.section-narrow { max-width: 720px; margin: 0 auto; text-align: center; }
+.section-wide { max-width: 1120px; margin: 0 auto; }
+
+.kicker {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  margin-bottom: 24px;
+}
+
+.section h2 { font-size: clamp(28px, 4vw, 40px); margin-bottom: 24px; }
+
+.lede { color: var(--c-ink-soft); font-size: 17px; max-width: 640px; margin: 0 auto; }
+
+/* ---------- Hero ---------- */
+.hero { padding: 160px 32px 128px; text-align: center; }
+
+.hero h1 {
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 700;
+  max-width: 860px;
+  margin: 0 auto 28px;
+}
+
+.hero .sub {
+  font-size: 18px;
+  color: var(--c-ink-soft);
+  max-width: 560px;
+  margin: 0 auto 48px;
+}
+
+.hero-actions { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+
+.hero-stat { margin-top: 96px; }
+.hero-stat .num {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: clamp(32px, 5vw, 48px);
+  letter-spacing: -0.02em;
+}
+.hero-stat .lbl { color: var(--c-ink-faint); font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 8px; }
+
+/* ---------- 品牌故事（双栏） ---------- */
+.story-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  max-width: 1120px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.story-grid h2 { margin-bottom: 24px; }
+.story-grid p { color: var(--c-ink-soft); }
+.story-grid p + p { margin-top: 20px; }
+
+.story-visual {
+  background: var(--c-surface);
+  border-radius: var(--r);
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+}
+.story-visual img { width: 64%; opacity: 0.9; border-radius: var(--r); }
+
+.tagline-row { margin-top: 40px; display: flex; flex-direction: column; gap: 12px; }
+.tagline-row span { font-family: var(--font-head); font-weight: 500; font-size: 15px; color: var(--c-ink-soft); }
+
+/* ---------- 商品区 ---------- */
+.filter-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 48px 0 64px; }
+
+.chip {
+  padding: 10px 22px;
+  border-radius: var(--r);
+  border: 1px solid var(--c-line);
+  background: transparent;
+  color: var(--c-ink-soft);
+  font-family: var(--font-body);
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 300ms var(--ease), border-color 300ms var(--ease), background-color 300ms var(--ease);
+}
+
+.chip:hover { border-color: var(--c-ink-faint); color: var(--c-ink); }
+.chip.active { background: var(--c-ink); border-color: var(--c-ink); color: #FFFFFF; }
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 32px;
+}
+
+.product-card {
+  background: var(--c-bg);
+  border: 1px solid var(--c-line);
+  border-radius: var(--r);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 300ms var(--ease), box-shadow 300ms var(--ease);
+}
+
+.product-card:hover { border-color: transparent; box-shadow: var(--c-shadow); }
+
+.product-img { background: var(--c-surface); aspect-ratio: 4 / 3; }
+.product-img img { width: 100%; height: 100%; object-fit: cover; }
+
+.product-body { padding: 24px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
+.product-name { font-family: var(--font-head); font-weight: 600; font-size: 15px; line-height: 1.4; }
+.product-desc { color: var(--c-ink-faint); font-size: 13px; flex: 1; }
+
+.product-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+
+.product-price { font-family: var(--font-head); font-weight: 600; font-size: 17px; font-variant-numeric: tabular-nums; }
+
+.product-badge {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--c-accent);
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.empty-hint { text-align: center; color: var(--c-ink-faint); padding: 64px 0; }
+
+/* ---------- 品牌主张（三列，用留白分隔） ---------- */
+.values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 64px; margin-top: 64px; text-align: left; }
+
+.value-item h3 { font-size: 18px; margin-bottom: 16px; }
+.value-item p { color: var(--c-ink-soft); font-size: 15px; }
+.value-num { font-family: var(--font-head); font-weight: 500; font-size: 13px; letter-spacing: 0.12em; color: var(--c-ink-faint); display: block; margin-bottom: 24px; }
+
+/* ---------- 历程（OUR JOURNEY） ---------- */
+.journey-list { max-width: 720px; margin: 64px auto 0; display: flex; flex-direction: column; gap: 48px; text-align: left; }
+
+.journey-item { display: grid; grid-template-columns: 120px 1fr; gap: 40px; align-items: baseline; }
+.journey-item .stage { font-family: var(--font-head); font-weight: 600; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; }
+.journey-item p { color: var(--c-ink-soft); font-size: 16px; }
+
+/* ---------- CTA 收尾 ---------- */
+.cta { padding: 128px 32px; text-align: center; }
+.cta h2 { margin-bottom: 20px; }
+.cta .lede { margin-bottom: 48px; }
+
+/* ---------- 页脚 ---------- */
+.footer { padding: 64px 32px; border-top: 1px solid var(--c-line); }
+.footer-inner { max-width: 1120px; margin: 0 auto; display: flex; justify-content: space-between; gap: 32px; flex-wrap: wrap; color: var(--c-ink-faint); font-size: 14px; }
+.footer a { transition: color 300ms var(--ease); }
+.footer a:hover { color: var(--c-ink); }
+
+/* ---------- 沙箱提示条 ---------- */
+.sandbox-bar {
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-line);
+  padding: 10px 32px;
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  font-size: 13px;
+  color: var(--c-ink-faint);
+}
+.sandbox-bar a { color: var(--c-ink-soft); transition: color 300ms var(--ease); }
+.sandbox-bar a:hover { color: var(--c-accent); }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 900px) {
+  .story-grid { grid-template-columns: 1fr; gap: 48px; }
+  .values-grid { grid-template-columns: 1fr; gap: 48px; }
+}
+
+@media (max-width: 720px) {
+  .nav-links { gap: 20px; }
+  .nav-links a:not(.btn) { display: none; }
+  .hero { padding: 96px 24px 80px; }
+  .section { padding: 64px 24px; }
+  .journey-item { grid-template-columns: 1fr; gap: 8px; }
+}

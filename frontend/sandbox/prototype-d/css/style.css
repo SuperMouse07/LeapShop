@@ -1,0 +1,348 @@
+/* ============================================================
+   Prototype D — Glassmorphism 玻璃拟态主题（完整独立样式表）
+   ------------------------------------------------------------
+   - 背景：渐变 #667eea → #764ba2 + 微妙渐变光晕球
+   - 卡片：rgba(255,255,255,0.1) + backdrop-blur(20px)
+     + 1px rgba(255,255,255,0.2) 描边 + 20px 圆角
+   - 布局：浮动卡片，区块之间负边距重叠
+   - 动画：加载 staggered 依次浮现；hover 放大 1.05 倍
+   - 字体：标题 Outfit（600-800）/ 正文 Plus Jakarta Sans（400-500）
+     沙箱禁外部 CDN，未安装时按 fallback 栈降级
+   ============================================================ */
+
+:root {
+  --grad-a: #667eea;
+  --grad-b: #764ba2;
+  --glass: rgba(255, 255, 255, 0.1);
+  --glass-strong: rgba(255, 255, 255, 0.16);
+  --stroke: rgba(255, 255, 255, 0.2);
+  --ink: #FFFFFF;
+  --ink-soft: rgba(255, 255, 255, 0.78);
+  --ink-faint: rgba(255, 255, 255, 0.55);
+  --r: 20px;
+  --blur: blur(20px);
+  --shadow: 0 8px 32px rgba(31, 24, 80, 0.25);
+  --font-head: 'Outfit', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--ink);
+  background: linear-gradient(135deg, var(--grad-a) 0%, var(--grad-b) 100%) fixed;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+
+/* ---------- 渐变光晕（装饰，固定于视口） ---------- */
+.orbs { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+}
+.orb-1 { width: 560px; height: 560px; top: -180px; left: -120px; background: radial-gradient(circle, rgba(147, 197, 253, 0.9), transparent 70%); }
+.orb-2 { width: 640px; height: 640px; top: 30%; right: -220px; background: radial-gradient(circle, rgba(196, 120, 222, 0.85), transparent 70%); }
+.orb-3 { width: 520px; height: 520px; bottom: -160px; left: 22%; background: radial-gradient(circle, rgba(96, 90, 210, 0.8), transparent 70%); }
+
+/* ---------- 玻璃卡片基类 ---------- */
+.glass {
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Staggered 浮现动画 ---------- */
+@keyframes floatIn {
+  from { opacity: 0; transform: translateY(28px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.stagger { animation: floatIn 600ms var(--ease) both; }
+.stagger:nth-child(1) { animation-delay: 0ms; }
+.stagger:nth-child(2) { animation-delay: 100ms; }
+.stagger:nth-child(3) { animation-delay: 200ms; }
+.stagger:nth-child(4) { animation-delay: 300ms; }
+.stagger:nth-child(5) { animation-delay: 400ms; }
+.stagger:nth-child(6) { animation-delay: 500ms; }
+.stagger:nth-child(7) { animation-delay: 600ms; }
+.stagger:nth-child(8) { animation-delay: 700ms; }
+.stagger:nth-child(9) { animation-delay: 800ms; }
+.stagger:nth-child(10) { animation-delay: 900ms; }
+
+/* 滚动显现 */
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity 600ms var(--ease), transform 600ms var(--ease); }
+.reveal.show { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger, .reveal { animation: none; transition: none; opacity: 1; transform: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* ---------- 沙箱提示条（玻璃胶囊） ---------- */
+.sandbox-bar {
+  position: sticky; top: 14px; z-index: 60;
+  margin: 14px auto 0;
+  width: min(920px, calc(100% - 32px));
+  padding: 10px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.sandbox-bar a { color: var(--ink); font-weight: 500; transition: opacity 250ms var(--ease); }
+.sandbox-bar a:hover { opacity: 0.7; }
+
+/* ---------- 导航（浮动玻璃条） ---------- */
+.nav {
+  position: sticky; top: 66px; z-index: 50;
+  margin: 16px auto 0;
+  width: min(1080px, calc(100% - 32px));
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.brand { display: flex; align-items: center; gap: 12px; font-family: var(--font-head); font-weight: 800; font-size: 19px; letter-spacing: 0.04em; }
+.brand-icon {
+  display: grid; place-items: center;
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--stroke);
+  font-size: 20px;
+}
+.nav-links { display: flex; align-items: center; gap: 8px; }
+.nav-links a {
+  padding: 9px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  transition: background-color 250ms var(--ease), color 250ms var(--ease);
+}
+.nav-links a:hover { background: rgba(255, 255, 255, 0.14); color: var(--ink); }
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: inline-block;
+  padding: 14px 34px;
+  border-radius: 999px;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 250ms var(--ease), background-color 250ms var(--ease), box-shadow 250ms var(--ease);
+}
+.btn:hover { transform: scale(1.05); }
+.btn-solid { background: rgba(255, 255, 255, 0.92); color: #4c3a8f; box-shadow: 0 8px 24px rgba(30, 20, 70, 0.3); }
+.btn-glass { background: var(--glass); color: var(--ink); border-color: var(--stroke); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+
+/* ---------- Hero（浮动玻璃大卡，向下重叠压住下一区块） ---------- */
+.wrap { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+
+.hero {
+  margin: 56px auto 0;
+  padding: 88px 56px 96px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+.hero-kicker {
+  display: inline-block;
+  padding: 8px 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--stroke);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 30px;
+}
+.hero h1 { font-size: clamp(34px, 5.6vw, 62px); font-weight: 800; max-width: 880px; margin: 0 auto 26px; text-shadow: 0 4px 30px rgba(30, 20, 70, 0.35); }
+.hero .sub { font-size: 18px; font-weight: 500; color: var(--ink-soft); max-width: 600px; margin: 0 auto 42px; }
+.hero-actions { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
+
+/* ---------- 统计卡（向上重叠压住 Hero 底部） ---------- */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: -64px;   /* 与 Hero 重叠 */
+  position: relative;
+  z-index: 3;
+}
+.stat-card { padding: 30px 26px; text-align: center; transition: transform 250ms var(--ease), background-color 250ms var(--ease); }
+.stat-card:hover { transform: scale(1.05); background: var(--glass-strong); }
+.stat-card .num { font-family: var(--font-head); font-weight: 800; font-size: clamp(26px, 3.4vw, 38px); }
+.stat-card .lbl { font-size: 13px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin-top: 6px; }
+
+/* ---------- 通用区块 ---------- */
+.section { padding: 110px 0 0; }
+.section-head { text-align: center; max-width: 660px; margin: 0 auto 54px; }
+.section-head .kicker {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 16px;
+}
+.section-head h2 { font-size: clamp(28px, 4vw, 42px); font-weight: 700; margin-bottom: 16px; }
+.section-head .lede { color: var(--ink-soft); font-size: 16px; }
+
+/* ---------- 品牌故事（双玻璃卡 + 重叠） ---------- */
+.story-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 0; align-items: stretch; }
+.story-text { padding: 52px 48px; position: relative; z-index: 2; }
+.story-text h3 { font-size: 24px; margin-bottom: 20px; }
+.story-text p { color: var(--ink-soft); }
+.story-visual {
+  padding: 26px;
+  margin: 48px 0 0 -48px;   /* 与文字卡重叠 */
+  position: relative;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+}
+.story-visual img { border-radius: 14px; width: 100%; }
+
+/* ---------- 商品 ---------- */
+.filter-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 48px; }
+.chip {
+  padding: 10px 24px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 250ms var(--ease), color 250ms var(--ease), transform 250ms var(--ease);
+}
+.chip:hover { transform: scale(1.05); background: rgba(255, 255, 255, 0.2); color: var(--ink); }
+.chip.active { background: rgba(255, 255, 255, 0.9); color: #4c3a8f; border-color: transparent; }
+
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 26px; }
+.product-card {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 250ms var(--ease), background-color 250ms var(--ease), box-shadow 250ms var(--ease);
+}
+.product-card:hover { transform: scale(1.05); background: var(--glass-strong); box-shadow: 0 16px 48px rgba(31, 24, 80, 0.4); position: relative; z-index: 4; }
+.product-img { aspect-ratio: 4 / 3; border-bottom: 1px solid var(--stroke); }
+.product-img img { width: 100%; height: 100%; object-fit: cover; }
+.product-body { padding: 22px 22px 24px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.product-name { font-family: var(--font-head); font-weight: 600; font-size: 16px; line-height: 1.4; }
+.product-desc { color: var(--ink-faint); font-size: 13px; flex: 1; }
+.product-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+.product-price { font-family: var(--font-head); font-weight: 700; font-size: 19px; font-variant-numeric: tabular-nums; }
+.product-badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--stroke);
+}
+.empty-hint { text-align: center; color: var(--ink-faint); padding: 64px 0; }
+
+/* ---------- 价值主张（三玻璃卡，中间卡上移形成重叠层次） ---------- */
+.values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; align-items: start; }
+.value-card { padding: 40px 32px; transition: transform 250ms var(--ease), background-color 250ms var(--ease); }
+.value-card:hover { transform: scale(1.05); background: var(--glass-strong); }
+.value-card:nth-child(2) { margin-top: -26px; }   /* 重叠层次 */
+.value-card .icon {
+  width: 52px; height: 52px;
+  display: grid; place-items: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--stroke);
+  font-size: 24px;
+  margin-bottom: 22px;
+}
+.value-card h3 { font-size: 19px; font-weight: 600; margin-bottom: 12px; }
+.value-card p { color: var(--ink-soft); font-size: 14px; }
+
+/* ---------- 历程（横向玻璃卡，依次错位重叠） ---------- */
+.journey-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+.journey-card { padding: 34px 30px; transition: transform 250ms var(--ease), background-color 250ms var(--ease); }
+.journey-card:hover { transform: scale(1.05); background: var(--glass-strong); }
+.journey-card:nth-child(2) { margin-top: 30px; }
+.journey-card:nth-child(3) { margin-top: 60px; }
+.journey-card .stage {
+  display: inline-block;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--stroke);
+  margin-bottom: 18px;
+}
+.journey-card p { color: var(--ink-soft); font-size: 15px; }
+
+/* ---------- CTA ---------- */
+.cta { margin-top: 110px; padding: 84px 48px; text-align: center; }
+.cta h2 { font-size: clamp(26px, 4vw, 40px); font-weight: 700; margin-bottom: 16px; }
+.cta .lede { color: var(--ink-soft); margin-bottom: 40px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+/* ---------- 页脚 ---------- */
+.footer { margin-top: 110px; padding: 56px 0 40px; border-top: 1px solid rgba(255, 255, 255, 0.18); }
+.footer-inner { width: min(1120px, calc(100% - 32px)); margin: 0 auto; display: flex; justify-content: space-between; gap: 32px; flex-wrap: wrap; color: var(--ink-faint); font-size: 14px; }
+.footer a { color: var(--ink-soft); transition: color 250ms var(--ease); }
+.footer a:hover { color: var(--ink); }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 900px) {
+  .story-grid { grid-template-columns: 1fr; }
+  .story-visual { margin: -36px 24px 0 auto; max-width: 420px; }
+  .values-grid, .journey-row { grid-template-columns: 1fr; }
+  .value-card:nth-child(2), .journey-card:nth-child(2), .journey-card:nth-child(3) { margin-top: 0; }
+}
+
+@media (max-width: 720px) {
+  .nav { top: 70px; padding: 12px 18px; }
+  .nav-links a:not(.btn-cta) { display: none; }
+  .hero { padding: 60px 26px 72px; margin-top: 36px; }
+  .stats-row { grid-template-columns: 1fr; margin-top: -40px; }
+  .section { padding-top: 72px; }
+  .cta { padding: 60px 26px; }
+}

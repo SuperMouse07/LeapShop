@@ -1,0 +1,122 @@
+<!-- Prototype B v2 — Neo-Brutalism × OLED Dark · 多页原型
+     页面角色：介绍页（品牌故事 / 设计理念 / 核心价值主张）
+     - 沙箱声明：纯静态原型，mock 数据，零 API 调用，不读写任何会话键 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>[Sandbox · Prototype B] About — LeapChess</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="pb">
+
+  <div class="sandbox-banner">
+    ♟ Sandbox · Prototype B v2 — Neo-Brutalism · 演示数据，零 API 调用 ·
+    <a href="../portal.html">返回入口页</a> · <a href="../../index.html">返回主站</a>
+  </div>
+
+  <!-- ============ 导航（多页共享结构，当前页 .active 高亮） ============ -->
+  <nav class="nav" id="nav">
+    <a class="brand" href="index.html">
+      <span class="brand-icon">♞</span>
+      <span class="brand-name">LeapChess</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="index.html">Home</a>
+      <a href="products.html">Products</a>
+      <a href="about.html" class="active" aria-current="page">About</a>
+      <a href="journey.html">Journey</a>
+      <a class="btn btn-small" href="../portal.html">Portal</a>
+    </div>
+  </nav>
+
+  <!-- ============ 页头 ============ -->
+  <header class="page-head">
+    <span class="section-tag blu">About Us</span>
+    <h1>Hello Everyone, Meet Your New Clock</h1>
+    <p>Born from a lifelong passion for the game — players building for players.</p>
+  </header>
+
+  <!-- ============ 品牌故事 + 数据块 ============ -->
+  <section class="section">
+    <div class="about-grid reveal">
+      <div class="about-text" id="aboutText"></div>
+      <div class="about-side">
+        <div class="about-stat"><b>500,000+</b><span>Chess Clubs Served</span></div>
+        <div class="about-stat blu"><b>39</b><span>Timing Modes on Flagship</span></div>
+      </div>
+    </div>
+    <div class="philosophy reveal">
+      <blockquote id="aboutQuote"></blockquote>
+      <cite>— The Leap Design Creed</cite>
+    </div>
+  </section>
+
+  <!-- ============ 核心价值主张 ============ -->
+  <section class="section">
+    <div class="section-head reveal">
+      <span class="section-tag">Why Leap</span>
+      <h2>What We Stand For</h2>
+      <p>Four principles behind every clock, board and stitch we ship.</p>
+    </div>
+    <div class="why-grid" id="whyGrid"></div>
+    <div class="section-more reveal">
+      <a class="btn btn-blu" href="journey.html">See How We Got Here →</a>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta">
+    <div class="cta-inner reveal">
+      <h2>Ready for <span class="yel">your next move?</span></h2>
+      <p>沙箱原型：真实场景下此处为商品列表与会员注册入口。</p>
+      <a class="btn btn-primary" href="products.html">Browse Products ♟</a>
+    </div>
+  </section>
+
+  <!-- ============ Footer（多页共享结构） ============ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-icon">♞</span>
+        <div>
+          <b>LeapChess</b>
+          <p>Precision for Players, by Players.</p>
+        </div>
+      </div>
+      <div class="footer-links">
+        <b>Explore</b>
+        <a href="index.html">Home</a>
+        <a href="products.html">Products</a>
+        <a href="about.html">About</a>
+        <a href="journey.html">Journey</a>
+      </div>
+      <div class="footer-links">
+        <b>Sandbox</b>
+        <a href="../portal.html">Portal</a>
+        <a href="../../index.html">主站对照</a>
+      </div>
+      <div class="footer-meta">
+        <p><span class="health-ok">● Sandbox Mode</span> · 零 API 调用 · 演示数据</p>
+        <p>✉️ hello@leapchess.example</p>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> LeapChess · Frontend sandbox prototype — not connected to any backend</div>
+  </footer>
+
+  <script type="module">
+    import { initPage, initReveal, BRAND, renderValues } from './js/mock.js';
+    initPage();
+    // 品牌故事与信条为 mock.js 中的受控静态文案（含 <b> 强调标记），直接渲染
+    document.getElementById('aboutText').innerHTML =
+      '<h3>Our Story</h3>' + BRAND.story.map((p) => `<p>${p}</p>`).join('');
+    document.getElementById('aboutQuote').textContent = BRAND.quote;
+    renderValues();
+    initReveal(); // 动态插入的 .reveal 元素重新登记观察
+  </script>
+</body>
+</html>

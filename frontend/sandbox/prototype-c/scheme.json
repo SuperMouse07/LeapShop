@@ -1,0 +1,10 @@
+{
+  "id": "prototype-c",
+  "name": "Prototype C",
+  "title": "极简主义白色重构",
+  "description": "以 theleapchess.com 官网真实品牌内容为素材的极简主义方案：纯白底 + 近黑文字 + 蓝色点缀，标题 PP Neue Montreal（500-700）/ 正文 Inter（400），单栏居中布局与大量留白（≥64px），600ms 缓慢淡入与 hover 颜色渐变，8px 圆角与 subtle 阴影，无背景装饰。",
+  "status": "active",
+  "entry": "index.html",
+  "pages": ["index.html"],
+  "updated": "2026-08-15"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "prototype-d",
+  "name": "Prototype D",
+  "title": "玻璃拟态浮动卡片",
+  "description": "Glassmorphism 方案：紫蓝渐变基底（#667eea→#764ba2）+ rgba(255,255,255,0.1) 磨砂玻璃卡片与 backdrop-blur 模糊，1px 半透明白描边、20px 圆角与渐变光晕；浮动卡片布局带区块重叠，加载时卡片 staggered 依次浮现，hover 放大 1.05 倍；标题 Outfit（600-800）/ 正文 Plus Jakarta Sans（400-500，本地 fallback 栈）。",
+  "status": "active",
+  "entry": "index.html",
+  "pages": ["index.html"],
+  "updated": "2026-08-15"
+}

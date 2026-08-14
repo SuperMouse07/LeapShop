@@ -1,0 +1,98 @@
+<!-- Prototype B v2 — Neo-Brutalism × OLED Dark · 多页原型
+     页面角色：历程页（时间轴 / 里程碑式品牌发展历程）
+     - 沙箱声明：纯静态原型，mock 数据，零 API 调用，不读写任何会话键 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>[Sandbox · Prototype B] Journey — LeapChess</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="pb">
+
+  <div class="sandbox-banner">
+    ♟ Sandbox · Prototype B v2 — Neo-Brutalism · 演示数据，零 API 调用 ·
+    <a href="../portal.html">返回入口页</a> · <a href="../../index.html">返回主站</a>
+  </div>
+
+  <!-- ============ 导航（多页共享结构，当前页 .active 高亮） ============ -->
+  <nav class="nav" id="nav">
+    <a class="brand" href="index.html">
+      <span class="brand-icon">♞</span>
+      <span class="brand-name">LeapChess</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="index.html">Home</a>
+      <a href="products.html">Products</a>
+      <a href="about.html">About</a>
+      <a href="journey.html" class="active" aria-current="page">Journey</a>
+      <a class="btn btn-small" href="../portal.html">Portal</a>
+    </div>
+  </nav>
+
+  <!-- ============ 页头 ============ -->
+  <header class="page-head">
+    <span class="section-tag red">Our Journey</span>
+    <h1>How We Started</h1>
+    <p>Equip. Support. Win. — From the needs of one chess club to the choice of 500,000 worldwide.</p>
+  </header>
+
+  <!-- ============ 完整时间轴 ============ -->
+  <section class="section">
+    <div class="timeline" id="timeline"></div>
+    <div class="section-more reveal">
+      <a class="btn btn-primary" href="products.html">Shop the Legacy ♟</a>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta">
+    <div class="cta-inner reveal">
+      <h2>The next chapter is <span class="yel">yours.</span></h2>
+      <p>沙箱原型：真实场景下此处为社区故事征集与俱乐部合作入口。</p>
+      <a class="btn btn-ghost" href="about.html">Back to Our Story →</a>
+    </div>
+  </section>
+
+  <!-- ============ Footer（多页共享结构） ============ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-icon">♞</span>
+        <div>
+          <b>LeapChess</b>
+          <p>Precision for Players, by Players.</p>
+        </div>
+      </div>
+      <div class="footer-links">
+        <b>Explore</b>
+        <a href="index.html">Home</a>
+        <a href="products.html">Products</a>
+        <a href="about.html">About</a>
+        <a href="journey.html">Journey</a>
+      </div>
+      <div class="footer-links">
+        <b>Sandbox</b>
+        <a href="../portal.html">Portal</a>
+        <a href="../../index.html">主站对照</a>
+      </div>
+      <div class="footer-meta">
+        <p><span class="health-ok">● Sandbox Mode</span> · 零 API 调用 · 演示数据</p>
+        <p>✉️ hello@leapchess.example</p>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> LeapChess · Frontend sandbox prototype — not connected to any backend</div>
+  </footer>
+
+  <script type="module">
+    import { initPage, initReveal, renderJourney } from './js/mock.js';
+    initPage();
+    renderJourney(); // 完整时间轴（纯本地渲染 mock，无网络请求）
+    initReveal(); // 动态插入的 .reveal 元素重新登记观察
+  </script>
+</body>
+</html>

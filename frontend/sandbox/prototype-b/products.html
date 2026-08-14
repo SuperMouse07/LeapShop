@@ -1,0 +1,103 @@
+<!-- Prototype B v2 — Neo-Brutalism × OLED Dark · 多页原型
+     页面角色：商品页（完整商品列表 + 分类筛选）
+     - 沙箱声明：纯静态原型，mock 数据，零 API 调用，不读写任何会话键 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>[Sandbox · Prototype B] Products — LeapChess</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="pb">
+
+  <div class="sandbox-banner">
+    ♟ Sandbox · Prototype B v2 — Neo-Brutalism · 演示数据，零 API 调用 ·
+    <a href="../portal.html">返回入口页</a> · <a href="../../index.html">返回主站</a>
+  </div>
+
+  <!-- ============ 导航（多页共享结构，当前页 .active 高亮） ============ -->
+  <nav class="nav" id="nav">
+    <a class="brand" href="index.html">
+      <span class="brand-icon">♞</span>
+      <span class="brand-name">LeapChess</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="index.html">Home</a>
+      <a href="products.html" class="active" aria-current="page">Products</a>
+      <a href="about.html">About</a>
+      <a href="journey.html">Journey</a>
+      <a class="btn btn-small" href="../portal.html">Portal</a>
+    </div>
+  </nav>
+
+  <!-- ============ 页头 ============ -->
+  <header class="page-head">
+    <span class="section-tag">Shop</span>
+    <h1>All Products</h1>
+    <p>Find the Move. Beat the Clock. — 完整商品列表（沙箱演示数据，共 6 件，纯本地分类过滤，不请求后端接口）。</p>
+  </header>
+
+  <!-- ============ 商品列表 + 筛选 ============ -->
+  <section class="section">
+    <div class="filter-bar" id="filterBar" role="group" aria-label="Filter products by category">
+      <button class="chip active" data-cat="">All</button>
+      <button class="chip" data-cat="chess-timer">Chess Timers</button>
+      <button class="chip" data-cat="chess-set">Chess Sets</button>
+      <button class="chip" data-cat="apparel">Apparel &amp; Gear</button>
+    </div>
+    <div class="product-grid" id="productGrid">
+      <div class="loading">Rendering mock products… ♟</div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta">
+    <div class="cta-inner reveal">
+      <h2>Need gear for your <span class="yel">club?</span></h2>
+      <p>沙箱原型：真实场景下此处为俱乐部批量采购咨询入口。</p>
+      <a class="btn btn-ghost" href="about.html">Why Choose Leap →</a>
+    </div>
+  </section>
+
+  <!-- ============ Footer（多页共享结构） ============ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-icon">♞</span>
+        <div>
+          <b>LeapChess</b>
+          <p>Precision for Players, by Players.</p>
+        </div>
+      </div>
+      <div class="footer-links">
+        <b>Explore</b>
+        <a href="index.html">Home</a>
+        <a href="products.html">Products</a>
+        <a href="about.html">About</a>
+        <a href="journey.html">Journey</a>
+      </div>
+      <div class="footer-links">
+        <b>Sandbox</b>
+        <a href="../portal.html">Portal</a>
+        <a href="../../index.html">主站对照</a>
+      </div>
+      <div class="footer-meta">
+        <p><span class="health-ok">● Sandbox Mode</span> · 零 API 调用 · 演示数据</p>
+        <p>✉️ hello@leapchess.example</p>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> LeapChess · Frontend sandbox prototype — not connected to any backend</div>
+  </footer>
+
+  <script type="module">
+    import { initPage, initFilter, renderProducts } from './js/mock.js';
+    initPage();
+    initFilter();
+    renderProducts(); // 完整列表（纯本地渲染 mock，无网络请求）
+  </script>
+</body>
+</html>

@@ -9,4 +9,6 @@
 export const SCHEMES = [
   { id: 'prototype-a' },
   { id: 'prototype-b' },
+  { id: 'prototype-c' },
+  { id: 'prototype-d' },
 ];

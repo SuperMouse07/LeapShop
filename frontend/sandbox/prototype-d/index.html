@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeapChess — Prototype D · Glassmorphism</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♟</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 渐变光晕（纯装饰） -->
+  <div class="orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- 沙箱环境提示条（正式采纳后移除） -->
+  <div class="sandbox-bar glass">
+    <span>SANDBOX · Prototype D — 纯静态设计验证，无真实数据</span>
+    <a href="../portal.html">← 返回沙箱入口</a>
+    <a href="../../index.html">主站对照 →</a>
+  </div>
+
+  <!-- 导航（浮动玻璃条） -->
+  <nav class="nav glass">
+    <a class="brand" href="#top">
+      <span class="brand-icon" aria-hidden="true">♞</span>
+      LeapChess
+    </a>
+    <div class="nav-links">
+      <a href="#story">Story</a>
+      <a href="#products">Products</a>
+      <a href="#why">Why Leap</a>
+      <a href="#journey">Journey</a>
+    </div>
+  </nav>
+
+  <!-- Hero（浮动玻璃大卡） -->
+  <header class="hero glass stagger" id="top">
+    <span class="hero-kicker">♜ Leap Chess Official</span>
+    <h1>Built for Grandmasters,<br>Accessible to Everyone.</h1>
+    <p class="sub">Precision for Players, by Players. 从 FIDE 标准计时器到创意棋具，让每一位棋手专注于最重要的事：下一步棋。</p>
+    <div class="hero-actions">
+      <a href="#products" class="btn btn-solid">Shop Now</a>
+      <a href="#story" class="btn btn-glass">Why Choose Leap</a>
+    </div>
+  </header>
+
+  <!-- 统计卡（上移与 Hero 重叠） -->
+  <div class="wrap">
+    <div class="stats-row">
+      <div class="stat-card glass stagger">
+        <div class="num" id="statNum"></div>
+        <div class="lbl" id="statLbl"></div>
+      </div>
+      <div class="stat-card glass stagger">
+        <div class="num">FIDE</div>
+        <div class="lbl">Certified Timers</div>
+      </div>
+      <div class="stat-card glass stagger">
+        <div class="num">39</div>
+        <div class="lbl">Timing Modes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 品牌故事（双玻璃卡重叠） -->
+  <section class="section" id="story">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker">Our Story</span>
+        <h2>Hello Everyone, Meet Your New Clock</h2>
+      </div>
+      <div class="story-grid reveal">
+        <div class="story-text glass">
+          <h3>Players building for players.</h3>
+          <p id="storyIntro"></p>
+        </div>
+        <div class="story-visual glass">
+          <img src="assets/placeholder.svg" alt="LEAP 产品占位图">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 商品 -->
+  <section class="section" id="products">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker">Collections</span>
+        <h2>Find the Move. Beat the Clock.</h2>
+        <p class="lede">赛事级计时器、便携棋具与棋迷周边 —— 全部为对局而生。</p>
+      </div>
+      <div class="filter-row reveal" id="filterRow"></div>
+      <div class="product-grid" id="productGrid"></div>
+    </div>
+  </section>
+
+  <!-- 价值主张 -->
+  <section class="section" id="why">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker">Why Choose Leap</span>
+        <h2>Precision for Players, by Players.</h2>
+      </div>
+      <div class="values-grid reveal" id="valuesGrid"></div>
+    </div>
+  </section>
+
+  <!-- 品牌历程 -->
+  <section class="section" id="journey">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker">How We Started</span>
+        <h2>Our Journey</h2>
+      </div>
+      <div class="journey-row reveal" id="journeyRow"></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="wrap">
+    <div class="cta glass reveal">
+      <h2>Equip. Support. Win.</h2>
+      <p class="lede">Cool Stuff for Chess Lovers — 棋不只是游戏，更是一种生活方式。</p>
+      <a href="#products" class="btn btn-solid">Explore the Collection</a>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <span>© 2026 LeapChess · Sandbox Prototype D</span>
+      <span>
+        <a href="../portal.html">沙箱入口</a> ·
+        <a href="../../index.html">主站</a>
+      </span>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { BRAND, CATEGORIES, PRODUCTS, VALUES, JOURNEY, escapeHtml } from './js/mock.js';
+
+    /* ---------- 品牌区 ---------- */
+    document.getElementById('statNum').textContent = BRAND.stat.value;
+    document.getElementById('statLbl').textContent = BRAND.stat.label;
+    document.getElementById('storyIntro').textContent = BRAND.intro;
+
+    /* ---------- 商品渲染与筛选（staggered 浮现由 CSS nth-child 延迟驱动） ---------- */
+    const grid = document.getElementById('productGrid');
+    const filterRow = document.getElementById('filterRow');
+    let activeCat = 'All';
+
+    function renderChips() {
+      filterRow.innerHTML = CATEGORIES.map(cat =>
+        `<button class="chip${cat === activeCat ? ' active' : ''}" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`
+      ).join('');
+    }
+
+    function renderProducts() {
+      const list = activeCat === 'All' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCat);
+      grid.innerHTML = list.length ? list.map(p => `
+        <article class="product-card glass stagger">
+          <div class="product-img"><img src="assets/placeholder.svg" alt="${escapeHtml(p.name)}" loading="lazy"></div>
+          <div class="product-body">
+            <div class="product-name">${escapeHtml(p.name)}</div>
+            <div class="product-desc">${escapeHtml(p.desc)}</div>
+            <div class="product-foot">
+              <span class="product-price">$${p.price.toFixed(2)}</span>
+              ${p.badge ? `<span class="product-badge">${escapeHtml(p.badge)}</span>` : ''}
+            </div>
+          </div>
+        </article>`).join('')
+        : '<p class="empty-hint">该分类暂无商品</p>';
+    }
+
+    filterRow.addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip || chip.dataset.cat === activeCat) return;
+      activeCat = chip.dataset.cat;
+      renderChips();
+      renderProducts();
+    });
+
+    renderChips();
+    renderProducts();
+
+    /* ---------- 价值主张与历程 ---------- */
+    const ICONS = ['♛', '♜', '♝'];
+    document.getElementById('valuesGrid').innerHTML = VALUES.map((v, i) => `
+      <div class="value-card glass stagger">
+        <div class="icon" aria-hidden="true">${ICONS[i] || '♟'}</div>
+        <h3>${escapeHtml(v.title)}</h3>
+        <p>${escapeHtml(v.desc)}</p>
+      </div>`).join('');
+
+    document.getElementById('journeyRow').innerHTML = JOURNEY.map(j => `
+      <div class="journey-card glass stagger">
+        <span class="stage">${escapeHtml(j.stage)}</span>
+        <p>${escapeHtml(j.text)}</p>
+      </div>`).join('');
+
+    /* ---------- 滚动显现 ---------- */
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('show'); io.unobserve(en.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+</body>
+</html>
