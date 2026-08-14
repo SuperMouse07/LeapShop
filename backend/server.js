@@ -130,18 +130,53 @@ async function removeUnreferenced(urls) {
   }
 }
 
-/** 递归统计目录占用（字节） */
-function dirSize(dir) {
+/** 递归统计目录占用（字节数 + 文件数） */
+function dirStats(dir) {
   try {
-    let total = 0;
+    let bytes = 0;
+    let files = 0;
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);
-      total += entry.isDirectory() ? dirSize(full) : fs.statSync(full).size;
+      if (entry.isDirectory()) {
+        const sub = dirStats(full);
+        bytes += sub.bytes;
+        files += sub.files;
+      } else {
+        bytes += fs.statSync(full).size;
+        files += 1;
+      }
     }
-    return total;
+    return { bytes, files };
+  } catch {
+    return { bytes: 0, files: 0 };
+  }
+}
+
+/** 解析 /uploads/... URL 对应的磁盘文件并返回字节数（不存在/非法路径计 0） */
+function uploadFileBytes(url) {
+  if (typeof url !== 'string' || !url.startsWith('/uploads/')) return 0;
+  const rel = url.slice('/uploads/'.length);
+  if (!rel || rel.includes('..') || path.isAbsolute(rel)) return 0;
+  try {
+    const st = fs.statSync(path.join(UPLOAD_DIR, rel));
+    return st.isFile() ? st.size : 0;
   } catch {
     return 0;
   }
+}
+
+/** 单商品存储明细：图片文件数/磁盘字节（按 URL 去重） + JSON 记录字节 */
+function productStorageDetail(p) {
+  const urls = new Set(productUploadUrls(p));
+  let imageFileBytes = 0;
+  for (const url of urls) imageFileBytes += uploadFileBytes(url);
+  const jsonBytes = Buffer.byteLength(JSON.stringify(p), 'utf8');
+  return {
+    imageFileCount: urls.size,
+    imageFileBytes,
+    jsonBytes,
+    totalBytes: imageFileBytes + jsonBytes,
+  };
 }
 
 /* ---------------- 认证中间件 ---------------- */
@@ -203,6 +238,14 @@ app.get('/api/products/:id', async (req, res) => {
   const rows = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Product not found' });
   res.json({ product: parseProduct(rows[0]) });
+});
+
+// 单商品存储明细（管理员）：图片文件数/磁盘字节 + JSON 记录字节
+app.get('/api/products/:id/storage', authRequired, adminOnly, async (req, res) => {
+  const rows = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
+  if (!rows[0]) return res.status(404).json({ error: 'Product not found' });
+  const p = parseProduct(rows[0]);
+  res.json({ id: p.id, name: p.name, ...productStorageDetail(p) });
 });
 
 // 新增（管理员）
@@ -277,13 +320,20 @@ app.delete('/api/products/:id', authRequired, adminOnly, async (req, res) => {
 /* ---------------- 存储统计（管理员） ---------------- */
 app.get('/api/stats/storage', authRequired, adminOnly, async (req, res) => {
   const { totalBytes: dbBytes, productBytes: dbProductBytes } = await storageStats();
-  const uploadBytes = dirSize(UPLOAD_DIR); // 图片文件落盘占用（生产为 Volume 挂载点）
+  const uploads = dirStats(UPLOAD_DIR); // 图片文件落盘占用（生产为 Volume 挂载点）
   const [{ c }] = await db.query('SELECT COUNT(*) AS c FROM products');
+  const totalBytes = dbBytes + uploads.bytes;
+  // 数据库系统开销 = 库内非商品表部分（目录表/用户表/WAL 等），占比按总体积计算
+  const overheadBytes = Math.max(0, dbBytes - dbProductBytes);
   res.json({
     dbType: db.type,
-    totalBytes: dbBytes + uploadBytes,
-    productBytes: dbProductBytes + uploadBytes,
+    totalBytes,
+    productBytes: dbProductBytes + uploads.bytes,
     productCount: Number(c),
+    imageFileCount: uploads.files,
+    imageFileBytes: uploads.bytes,
+    overheadBytes,
+    overheadRatio: totalBytes > 0 ? Number(((overheadBytes / totalBytes) * 100).toFixed(1)) : 0,
   });
 });
 

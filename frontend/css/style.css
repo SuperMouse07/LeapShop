@@ -421,6 +421,53 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
 .row-actions { display: flex; gap: 8px; }
 .row-actions .btn { padding: 5px 12px; font-size: 12px; }
 
+/* ---------- 存储明细列：数字右对齐 + 纯 CSS Tooltip ---------- */
+.admin-table .th-num, .admin-table .td-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tip-cell { position: relative; cursor: help; }
+.tip-cell::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  z-index: 30;
+  min-width: 210px;
+  max-width: 340px;
+  padding: 9px 13px;
+  background: var(--black);
+  border: 1px solid rgba(212, 175, 55, .4);
+  border-radius: 8px;
+  color: var(--ivory);
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .55);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: opacity .18s ease, transform .18s ease, visibility .18s;
+  pointer-events: none;
+}
+.tip-cell::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 20px;
+  border: 6px solid transparent;
+  border-top-color: rgba(212, 175, 55, .4);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .18s ease, visibility .18s;
+  pointer-events: none;
+}
+.tip-cell:hover::after, .tip-cell:hover::before { opacity: 1; visibility: visible; }
+.tip-cell:hover::after { transform: none; }
+.tip-cell[data-tip='']::after, .tip-cell[data-tip='']::before { display: none; }
+
 /* ---------- 滚动显现动画 ---------- */
 .reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .7s ease; }
 .reveal.show { opacity: 1; transform: none; }

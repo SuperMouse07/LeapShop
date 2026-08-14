@@ -56,6 +56,9 @@ async function loadStats() {
     $('statTotal').textContent = formatBytes(s.totalBytes);
     $('statProducts').textContent = formatBytes(s.productBytes);
     $('statCount').textContent = `${s.productCount} item(s)`;
+    $('statImgCount').textContent = typeof s.imageFileCount === 'number' ? `${s.imageFileCount} file(s)` : '—';
+    $('statImgSize').textContent = typeof s.imageFileBytes === 'number' ? formatBytes(s.imageFileBytes) : '—';
+    $('statOverhead').textContent = typeof s.overheadRatio === 'number' ? `${s.overheadRatio.toFixed(1)}%` : '—';
     const pct = s.totalBytes > 0 ? Math.min(100, (s.productBytes / s.totalBytes) * 100) : 0;
     $('statBar').style.width = `${pct}%`;
     $('statBarLabel').textContent = `Product data takes ${pct.toFixed(1)}% of total storage`;
@@ -71,7 +74,7 @@ async function loadList() {
     const { products } = await api('/products');
     $('productCount').textContent = `${products.length} item(s)`;
     if (!products.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="loading">No products yet — upload your first one on the left.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="loading">No products yet — upload your first one on the left.</td></tr>';
       return;
     }
     tbody.innerHTML = products.map((p) => {
@@ -88,6 +91,8 @@ async function loadList() {
         <td>${CAT_LABEL[p.category] || escapeHtml(p.category)}</td>
         <td>$ ${Number(p.price).toFixed(2)}</td>
         <td>${vCount ? `${vCount} variant(s)` : '—'}</td>
+        <td class="td-num" id="imgCount-${p.id}">…</td>
+        <td class="td-num tip-cell" id="imgSize-${p.id}" data-tip="">…</td>
         <td class="row-actions">
           <button class="btn btn-ghost" data-act="edit" data-id="${p.id}">Edit</button>
           <button class="btn btn-danger" data-act="del" data-id="${p.id}">Delete</button>
@@ -96,9 +101,30 @@ async function loadList() {
     `;
     }).join('');
     tbody.dataset.products = JSON.stringify(products);
+    loadRowStorage(products);
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="7" class="loading">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="loading">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
   }
+}
+
+/** 并行拉取每行商品的存储明细，回填单元格与 Tooltip（失败保持占位符） */
+async function loadRowStorage(products) {
+  await Promise.all(
+    products.map(async (p) => {
+      let d = null;
+      try {
+        d = await api(`/products/${p.id}/storage`);
+      } catch {
+        return;
+      }
+      const cEl = $(`imgCount-${p.id}`);
+      const sEl = $(`imgSize-${p.id}`);
+      if (!d || !cEl || !sEl) return;
+      cEl.textContent = d.imageFileCount;
+      sEl.textContent = formatBytes(d.imageFileBytes);
+      sEl.dataset.tip = `Images: ${d.imageFileCount} files | ${formatBytes(d.imageFileBytes)} on disk | JSON: ${formatBytes(d.jsonBytes)} | Total: ${formatBytes(d.totalBytes)}`;
+    })
+  );
 }
 
 /* ---------- Form ---------- */
