@@ -1,9 +1,16 @@
+﻿<!-- Prototype B — UI/UX Pro Max Enhanced
+     设计来源（ui-ux-pro-max skill 检索）：
+     - Style  : dark-mode-oled 深黑高对比 + skeuomorphism 奢华多层质感
+     - Color  : E-commerce Luxury 方案（#1C1917 基底 / 金色渐变强调）
+     - Type   : 奢华衬线气质（本地 Georgia 衬线 + 加宽字距，沙箱禁外部字体）
+     - UX     : 8px 间距体系 / focus-visible 焦点环 / prefers-reduced-motion / 价格 tabular 数字
+     沙箱声明：纯静态原型，mock 数据，零 API 调用，不读写任何会话键 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>[Sandbox · Prototype A] LeapChess Homepage Redesign</title>
+  <title>[Sandbox · Prototype B] LeapChess Homepage — Luxury Dark</title>
   <meta name="robots" content="noindex" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
   <link rel="stylesheet" href="css/style.css" />
@@ -20,12 +27,12 @@
     .sandbox-banner a { color: var(--gold); font-weight: 600; }
   </style>
 </head>
-<body id="top">
+<body id="top" class="pb">
 
   <!-- 沙箱身份提示：本页为纯静态原型，数据均为 mock，不调用任何后端接口 -->
   <div class="sandbox-banner">
-    ♟ SANDBOX · PROTOTYPE A — 演示数据，零 API 调用 ·
-    <a href="portal.html">返回入口页</a> · <a href="../index.html">返回主站</a>
+    ♟ SANDBOX · PROTOTYPE B（UI/UX Pro Max Enhanced）— 演示数据，零 API 调用 ·
+    <a href="../portal.html">返回入口页</a> · <a href="../../index.html">返回主站</a>
   </div>
 
   <!-- ============ Nav（已净化：移除登录态插槽与真实登录入口） ============ -->
@@ -39,11 +46,11 @@
       <a href="#shop">Shop</a>
       <a href="#why">Why Leap</a>
       <a href="#journey">Our Journey</a>
-      <a class="btn btn-small" href="portal.html">Portal</a>
+      <a class="btn btn-small" href="../portal.html">Portal</a>
     </div>
   </nav>
 
-  <!-- ============ Hero ============ -->
+  <!-- ============ Hero：棋盘格对比增强 + 金色渐变文字与 CTA ============ -->
   <header class="hero">
     <div class="hero-board" aria-hidden="true"></div>
     <div class="hero-inner">
@@ -57,16 +64,16 @@
         <a class="btn btn-primary" href="#shop">Shop Now ♟</a>
         <a class="btn btn-ghost" href="#why">Why Choose Leap</a>
       </div>
-      <div class="hero-stats">
-        <div class="hs"><b>500,000+</b><span>Chess Clubs Served</span></div>
-        <div class="hs"><b>FIDE</b><span>Certified Timers</span></div>
-        <div class="hs"><b>39</b><span>Timing Modes</span></div>
+      <div class="hero-stats" role="list" aria-label="Brand highlights">
+        <div class="hs" role="listitem"><b>500,000+</b><span>Chess Clubs Served</span></div>
+        <div class="hs" role="listitem"><b>FIDE</b><span>Certified Timers</span></div>
+        <div class="hs" role="listitem"><b>39</b><span>Timing Modes</span></div>
       </div>
     </div>
     <div class="hero-piece" aria-hidden="true">♞</div>
   </header>
 
-  <!-- ============ Why Leap ============ -->
+  <!-- ============ Why Leap：图标徽章化 + 深阴影层次 ============ -->
   <section class="section why" id="why">
     <div class="section-head reveal">
       <span class="section-tag">WHY LEAP</span>
@@ -75,22 +82,22 @@
     </div>
     <div class="why-grid">
       <div class="why-card reveal">
-        <div class="why-icon">♛</div>
+        <div class="why-icon" aria-hidden="true">♛</div>
         <h3>Pro-Grade Precision</h3>
         <p>Millisecond timing chips with FIDE-standard presets — reliable from club training to international tournaments.</p>
       </div>
       <div class="why-card reveal">
-        <div class="why-icon">♜</div>
+        <div class="why-icon" aria-hidden="true">♜</div>
         <h3>Built to Last</h3>
         <p>Drop-resistant bodies, long-life batteries and anti-slip bases, tough enough for thousands of games.</p>
       </div>
       <div class="why-card reveal">
-        <div class="why-icon">♝</div>
+        <div class="why-icon" aria-hidden="true">♝</div>
         <h3>Accessible to All</h3>
         <p>From entry-level training clocks to flagship tournament models — there's one for every budget.</p>
       </div>
       <div class="why-card reveal">
-        <div class="why-icon">♞</div>
+        <div class="why-icon" aria-hidden="true">♞</div>
         <h3>Smart &amp; Connected</h3>
         <p>Flagship models sync with apps like Lichess / Chess.com, so your post-game analysis starts faster.</p>
       </div>
@@ -104,7 +111,7 @@
       <h2>Featured Products</h2>
       <p>Find the Move. Beat the Clock. — 沙箱原型：商品为内嵌演示数据，不请求后端接口。</p>
     </div>
-    <div class="filter-bar reveal" id="filterBar">
+    <div class="filter-bar reveal" id="filterBar" role="group" aria-label="Filter products by category">
       <button class="chip active" data-cat="">All</button>
       <button class="chip" data-cat="chess-timer">Chess Timers</button>
       <button class="chip" data-cat="chess-set">Chess Sets</button>
@@ -115,7 +122,7 @@
     </div>
   </section>
 
-  <!-- ============ Our Journey ============ -->
+  <!-- ============ Our Journey：节点卡片化 + 发光连接线 ============ -->
   <section class="section journey" id="journey">
     <div class="section-head reveal">
       <span class="section-tag">OUR JOURNEY</span>
@@ -124,21 +131,21 @@
     </div>
     <div class="timeline">
       <div class="tl-item reveal">
-        <span class="tl-dot">♟</span>
+        <span class="tl-dot" aria-hidden="true">♟</span>
         <div class="tl-body">
           <h4>The Origin</h4>
           <p>Our founder, a lifelong chess lover, found clocks on the market either too expensive or unreliable — and decided to build a better one.</p>
         </div>
       </div>
       <div class="tl-item reveal">
-        <span class="tl-dot">♜</span>
+        <span class="tl-dot" aria-hidden="true">♜</span>
         <div class="tl-body">
           <h4>Certified Professional</h4>
           <p>Our flagship series earned FIDE certification and took its place beside the boards of international tournaments.</p>
         </div>
       </div>
       <div class="tl-item reveal">
-        <span class="tl-dot">♛</span>
+        <span class="tl-dot" aria-hidden="true">♛</span>
         <div class="tl-body">
           <h4>Serving the World</h4>
           <p>Supporting 500,000+ clubs and schools worldwide — the trusted gear of coaches and arbiters.</p>
@@ -152,7 +159,7 @@
     <div class="cta-inner reveal">
       <h2>Your move. <span class="gold">It's your turn.</span></h2>
       <p>这是沙箱原型页。回到入口页查看其他设计方案，或返回主站体验真实功能。</p>
-      <a class="btn btn-primary" href="portal.html">Back to Portal ♞</a>
+      <a class="btn btn-primary" href="../portal.html">Back to Portal ♞</a>
     </div>
   </section>
 
@@ -170,7 +177,7 @@
         <a href="#shop">Shop</a>
         <a href="#why">Why Leap</a>
         <a href="#journey">Our Journey</a>
-        <a href="portal.html">Portal</a>
+        <a href="../portal.html">Portal</a>
       </div>
       <div class="footer-meta">
         <p><span class="health-ok">● Sandbox Mode</span> · 零 API 调用 · 演示数据</p>

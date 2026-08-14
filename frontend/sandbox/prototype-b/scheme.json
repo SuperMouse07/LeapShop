@@ -1,0 +1,10 @@
+{
+  "id": "prototype-b",
+  "name": "Prototype B",
+  "title": "奢华暗夜视觉升级",
+  "description": "由 ui-ux-pro-max skill 驱动：OLED 深黑高对比基底 + 金色渐变 CTA 与价格强调，Why 卡片图标徽章化与深阴影层次，时间线节点卡片化 + 发光连接线，并落实 focus-visible、reduced-motion 与 tabular 价格数字等 UX 规范。",
+  "status": "candidate",
+  "entry": "index.html",
+  "pages": ["index.html"],
+  "updated": "2026-08-14"
+}

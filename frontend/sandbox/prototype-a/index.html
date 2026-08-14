@@ -1,0 +1,192 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>[Sandbox · Prototype A] LeapChess Homepage Redesign</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* 沙箱专属提示条（仅沙箱内使用，合并主站时不保留） */
+    .sandbox-banner {
+      position: sticky; top: 0; z-index: 60;
+      background: rgba(212, 175, 55, .14);
+      border-bottom: 1px solid rgba(212, 175, 55, .45);
+      color: var(--gold-soft);
+      text-align: center; font-size: 13px; letter-spacing: .06em;
+      padding: 7px 12px; backdrop-filter: blur(8px);
+    }
+    .sandbox-banner a { color: var(--gold); font-weight: 600; }
+  </style>
+</head>
+<body id="top">
+
+  <!-- 沙箱身份提示：本页为纯静态原型，数据均为 mock，不调用任何后端接口 -->
+  <div class="sandbox-banner">
+    ♟ SANDBOX · PROTOTYPE A — 演示数据，零 API 调用 ·
+    <a href="../portal.html">返回入口页</a> · <a href="../../index.html">返回主站</a>
+  </div>
+
+  <!-- ============ Nav（已净化：移除登录态插槽与真实登录入口） ============ -->
+  <nav class="nav" id="nav">
+    <a class="brand" href="#top">
+      <span class="brand-icon">♞</span>
+      <span class="brand-name">LeapChess</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="#shop">Shop</a>
+      <a href="#why">Why Leap</a>
+      <a href="#journey">Our Journey</a>
+      <a class="btn btn-small" href="../portal.html">Portal</a>
+    </div>
+  </nav>
+
+  <!-- ============ Hero ============ -->
+  <header class="hero">
+    <div class="hero-board" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <span class="hero-kicker">♜ LEAP CHESS OFFICIAL</span>
+      <h1>Built for Grandmasters,<br /><span class="gold">Accessible to Everyone.</span></h1>
+      <p class="hero-sub">
+        From FIDE-certified tournament clocks to creative chess essentials,
+        we empower players at every level to focus on what matters most — <b>the next move</b>.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#shop">Shop Now ♟</a>
+        <a class="btn btn-ghost" href="#why">Why Choose Leap</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hs"><b>500,000+</b><span>Chess Clubs Served</span></div>
+        <div class="hs"><b>FIDE</b><span>Certified Timers</span></div>
+        <div class="hs"><b>39</b><span>Timing Modes</span></div>
+      </div>
+    </div>
+    <div class="hero-piece" aria-hidden="true">♞</div>
+  </header>
+
+  <!-- ============ Why Leap ============ -->
+  <section class="section why" id="why">
+    <div class="section-head reveal">
+      <span class="section-tag">WHY LEAP</span>
+      <h2>Precision for Players, by Players.</h2>
+      <p>Born from a lifelong passion for the game. LEAP combines professional-grade accuracy with innovative design.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card reveal">
+        <div class="why-icon">♛</div>
+        <h3>Pro-Grade Precision</h3>
+        <p>Millisecond timing chips with FIDE-standard presets — reliable from club training to international tournaments.</p>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-icon">♜</div>
+        <h3>Built to Last</h3>
+        <p>Drop-resistant bodies, long-life batteries and anti-slip bases, tough enough for thousands of games.</p>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-icon">♝</div>
+        <h3>Accessible to All</h3>
+        <p>From entry-level training clocks to flagship tournament models — there's one for every budget.</p>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-icon">♞</div>
+        <h3>Smart &amp; Connected</h3>
+        <p>Flagship models sync with apps like Lichess / Chess.com, so your post-game analysis starts faster.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Shop（mock 数据，纯本地过滤） ============ -->
+  <section class="section shop" id="shop">
+    <div class="section-head reveal">
+      <span class="section-tag">SHOP</span>
+      <h2>Featured Products</h2>
+      <p>Find the Move. Beat the Clock. — 沙箱原型：商品为内嵌演示数据，不请求后端接口。</p>
+    </div>
+    <div class="filter-bar reveal" id="filterBar">
+      <button class="chip active" data-cat="">All</button>
+      <button class="chip" data-cat="chess-timer">Chess Timers</button>
+      <button class="chip" data-cat="chess-set">Chess Sets</button>
+      <button class="chip" data-cat="apparel">Apparel &amp; Gear</button>
+    </div>
+    <div class="product-grid" id="productGrid">
+      <div class="loading">Rendering mock products… ♟</div>
+    </div>
+  </section>
+
+  <!-- ============ Our Journey ============ -->
+  <section class="section journey" id="journey">
+    <div class="section-head reveal">
+      <span class="section-tag">OUR JOURNEY</span>
+      <h2>Empowering Clubs. Elevating the Game.</h2>
+      <p>Equip. Support. Win. — From the needs of one chess club to the choice of 500,000 worldwide.</p>
+    </div>
+    <div class="timeline">
+      <div class="tl-item reveal">
+        <span class="tl-dot">♟</span>
+        <div class="tl-body">
+          <h4>The Origin</h4>
+          <p>Our founder, a lifelong chess lover, found clocks on the market either too expensive or unreliable — and decided to build a better one.</p>
+        </div>
+      </div>
+      <div class="tl-item reveal">
+        <span class="tl-dot">♜</span>
+        <div class="tl-body">
+          <h4>Certified Professional</h4>
+          <p>Our flagship series earned FIDE certification and took its place beside the boards of international tournaments.</p>
+        </div>
+      </div>
+      <div class="tl-item reveal">
+        <span class="tl-dot">♛</span>
+        <div class="tl-body">
+          <h4>Serving the World</h4>
+          <p>Supporting 500,000+ clubs and schools worldwide — the trusted gear of coaches and arbiters.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA（净化：移除真实登录引导，改为返回入口） ============ -->
+  <section class="cta">
+    <div class="cta-inner reveal">
+      <h2>Your move. <span class="gold">It's your turn.</span></h2>
+      <p>这是沙箱原型页。回到入口页查看其他设计方案，或返回主站体验真实功能。</p>
+      <a class="btn btn-primary" href="../portal.html">Back to Portal ♞</a>
+    </div>
+  </section>
+
+  <!-- ============ Footer（净化：健康检查徽章改为静态沙箱标识） ============ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-icon">♞</span>
+        <div>
+          <b>LeapChess</b>
+          <p>Precision for Players, by Players.</p>
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="#shop">Shop</a>
+        <a href="#why">Why Leap</a>
+        <a href="#journey">Our Journey</a>
+        <a href="../portal.html">Portal</a>
+      </div>
+      <div class="footer-meta">
+        <p><span class="health-ok">● Sandbox Mode</span> · 零 API 调用 · 演示数据</p>
+        <p>✉️ hello@leapchess.example</p>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> LeapChess · Frontend sandbox prototype — not connected to any backend</div>
+  </footer>
+
+  <script type="module">
+    import { renderProducts, initFilter, initNav, initReveal } from './js/mock.js';
+    document.getElementById('year').textContent = new Date().getFullYear();
+    initNav();
+    initReveal();
+    initFilter();
+    renderProducts(); // 纯本地渲染 mock 数据，无网络请求
+  </script>
+</body>
+</html>

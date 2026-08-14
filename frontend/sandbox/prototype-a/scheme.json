@@ -1,0 +1,10 @@
+{
+  "id": "prototype-a",
+  "name": "Prototype A",
+  "title": "首页改版基线",
+  "description": "基于主站 index.html 净化而来的示例原型：保留主站视觉骨架，商品区改用 mock 数据纯本地渲染，验证沙箱工作流本身。",
+  "status": "active",
+  "entry": "index.html",
+  "pages": ["index.html"],
+  "updated": "2026-08-14"
+}
