@@ -1,6 +1,7 @@
 /**
  * 数据库抽象层：
- * - 检测到 DATABASE_URL / PGHOST 环境变量时使用 PostgreSQL（Zeabur 生产环境）
+ * - 检测到 DATABASE_URL / PGHOST / POSTGRES_URI / POSTGRES_HOST 环境变量时使用 PostgreSQL（Zeabur 生产环境）
+ *   （Zeabur 注入变量有两代命名：旧版 PGHOST 等、新版 POSTGRES_HOST 等，均兼容）
  * - 否则回退到本地 SQLite 文件（sql.js 纯 WASM 实现，无需编译，开发零配置）
  * SQL 统一使用 ? 占位符，PostgreSQL 路径会自动转换为 $1/$2...
  *
@@ -9,7 +10,9 @@
 const path = require('path');
 const fs = require('fs');
 
-const usePg = Boolean(process.env.DATABASE_URL || process.env.PGHOST);
+const usePg = Boolean(
+  process.env.DATABASE_URL || process.env.PGHOST || process.env.POSTGRES_URI || process.env.POSTGRES_HOST
+);
 
 let impl = null;
 let dbFilePath = null; // SQLite 数据文件路径（connect 后赋值，供存储统计使用）
@@ -28,8 +31,8 @@ function toPgSql(sql) {
  *   DATABASE_URL 中携带 sslmode=require 来开启
  */
 function pgPoolOptions() {
-  if (process.env.DATABASE_URL) {
-    const url = process.env.DATABASE_URL;
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URI;
+  if (url) {
     const needsSsl =
       /sslmode=(require|verify-ca|verify-full)/i.test(url) ||
       /^(true|1|on)$/i.test(process.env.PGSSL || '');
@@ -38,7 +41,17 @@ function pgPoolOptions() {
       ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
     };
   }
-  // 无 DATABASE_URL 时依赖 Zeabur 自动注入的 PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE
+  // Zeabur 新版分散变量（POSTGRES_* 命名）
+  if (process.env.POSTGRES_HOST) {
+    return {
+      host: process.env.POSTGRES_HOST,
+      port: Number(process.env.POSTGRES_PORT || 5432),
+      user: process.env.POSTGRES_USERNAME,
+      password: process.env.POSTGRES_PASSWORD,
+      database: process.env.POSTGRES_DATABASE,
+    };
+  }
+  // 无连接串时依赖 Zeabur 自动注入的 PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE
   return {};
 }
 
