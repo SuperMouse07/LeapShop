@@ -375,6 +375,20 @@ if (fs.existsSync(frontendDir)) {
   await initSchema();
   await seed(); // 幂等：仅当缺失时写入预设账户与占位商品
   console.log(`[leapchess] 图片目录: ${UPLOAD_DIR}${process.env.UPLOAD_DIR ? '（Volume）' : ''}`);
+  // 检测 UPLOAD_DIR 是否位于独立挂载点（Volume）：与根文件系统同设备意味着图片落在临时盘，重新部署即丢失
+  // 仅在显式设置 UPLOAD_DIR（生产意图）时检测，本地开发不告警
+  if (process.env.UPLOAD_DIR) {
+    try {
+      const stDir = fs.statSync(UPLOAD_DIR);
+      const stRoot = fs.statSync(path.parse(UPLOAD_DIR).root || '/');
+      if (stDir.dev === stRoot.dev) {
+        console.warn(
+          '[leapchess] 警告: UPLOAD_DIR 不在 Volume 挂载点上，图片文件存于临时文件系统，重新部署将全部丢失！' +
+          '请在 Zeabur 给主程序服务挂载硬盘（如挂载目录 /data）并确保 UPLOAD_DIR 位于其下。'
+        );
+      }
+    } catch { /* 忽略检测异常，不影响启动 */ }
+  }
   app.listen(PORT, () => {
     console.log(`[leapchess] API 已启动: http://localhost:${PORT} (数据库: ${usePg ? 'PostgreSQL' : 'SQLite'})`);
   });
