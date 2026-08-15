@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-label="LeapChess placeholder">
+  <rect width="640" height="640" fill="#FFFFFF"/>
+  <rect x="24" y="24" width="592" height="592" fill="none" stroke="#12100E" stroke-opacity="0.14" stroke-width="1"/>
+  <rect x="40" y="40" width="560" height="560" fill="none" stroke="#D4AF37" stroke-opacity="0.55" stroke-width="1"/>
+  <g fill="#12100E">
+    <rect x="40" y="560" width="40" height="40"/>
+    <rect x="120" y="560" width="40" height="40"/>
+    <rect x="80" y="520" width="40" height="40"/>
+    <rect x="160" y="520" width="40" height="40"/>
+    <rect x="560" y="40" width="40" height="40" fill="#D4AF37"/>
+    <rect x="480" y="40" width="40" height="40"/>
+    <rect x="520" y="80" width="40" height="40"/>
+    <rect x="440" y="80" width="40" height="40" fill="#D4AF37"/>
+  </g>
+  <text x="320" y="392" font-family="Georgia, 'Times New Roman', serif" font-size="240" text-anchor="middle" fill="#12100E">&#9822;</text>
+  <text x="320" y="470" font-family="Helvetica, Arial, sans-serif" font-size="20" letter-spacing="10" text-anchor="middle" fill="#D4AF37">LEAP CHESS</text>
+</svg>

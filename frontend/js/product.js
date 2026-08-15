@@ -1,234 +1,99 @@
 /**
- * 产品详情页：左侧图片轮播 + 右侧信息（名称 / 价格 / 描述 + 颜色款式选择）
- * 路由：product.html?id=<productId>
+ * LeapShop · 商品单页脚本（product.html?id=N）
+ * 规范落实：左侧主图 1:1 左右滑动（scroll-snap）+ 下方详情图；
+ * 右侧区块 1（标题/价格/数量/add to cart）+ 区块 2（product information 文字）。
+ * 数据来自后端 /api/products/:id（images=主图集，details=详情图，info=卖点）。
  */
-import { detectApiBase, api, renderNavUser, escapeHtml } from './api.js';
+import { CAT_META } from './data.js';
+import { fetchProduct, escapeHtml, money, PLACEHOLDER } from './store.js';
 
-const CAT_LABEL = { 'chess-timer': 'CHESS TIMER', 'chess-set': 'CHESS SET', apparel: 'APPAREL & GEAR' };
+const $ = (s) => document.querySelector(s);
+const id = +new URLSearchParams(location.search).get('id');
+const root = $('#pdRoot');
 
-let product = null;
-let selColor = '';   // 当前选中的颜色（空 = 默认图集）
-let selStyle = '';   // 当前选中的款式
-let currentImages = [];
-let idx = 0;
-
-const $ = (id) => document.getElementById(id);
-
-/** 解析查询参数中的商品 ID */
-function getProductId() {
-  const id = Number(new URLSearchParams(location.search).get('id'));
-  return Number.isFinite(id) && id > 0 ? id : null;
+function notFound() {
+  root.innerHTML = `
+    <div class="wrap pd-wrap">
+      <p class="cart-empty">Product not found ♟<br>
+        <a class="link-more" href="products.html"><span>Back to Product Overview</span><span class="arr">→</span></a>
+      </p>
+    </div>`;
 }
 
-/** 当前颜色+款式组合命中的变体（精确 > 部分匹配） */
-function activeVariant() {
-  const vs = product.variants || [];
-  if (!selColor && !selStyle) return null;
-  return (
-    vs.find((v) => selColor && v.color === selColor && selStyle && v.style === selStyle) ||
-    vs.find((v) => selColor && v.color === selColor) ||
-    vs.find((v) => selStyle && v.style === selStyle) ||
-    null
-  );
-}
+async function init() {
+  let p = null;
+  try { if (id) p = await fetchProduct(id); } catch { /* 404 / 网络异常 */ }
+  if (!p) { notFound(); return; }
 
-/** 当前轮播图集：优先变体图集，其次商品主图集 */
-function activeImages() {
-  const v = activeVariant();
-  if (v && v.images.length) return v.images;
-  return product.images || [];
-}
-
-/** 变体标签文字，如「曜石黑 · 标准版」 */
-function variantLabel() {
-  const v = activeVariant();
-  if (!v) return '';
-  return [v.color, v.style].filter(Boolean).join(' · ');
-}
-
-/* ---------- 轮播渲染（循环切换） ---------- */
-function renderCarousel() {
-  currentImages = activeImages();
-  idx = 0;
-  const stage = $('carouselStage');
-  if (!currentImages.length) {
-    stage.innerHTML = '<div class="pd-noimg">♟</div>';
-  } else {
-    stage.innerHTML = currentImages
-      .map((src, i) => `<img class="${i === 0 ? 'active' : ''}" src="${escapeHtml(src)}" alt="${escapeHtml(product.name)} ${i + 1}" />`)
-      .join('');
-  }
-  const label = variantLabel();
-  $('carouselBadge').textContent = label ? `♟ ${label}` : '';
-  $('carouselBadge').classList.toggle('hidden', !label);
-  renderThumbs();
-  updateCounter();
-}
-
-function showAt(i) {
-  if (!currentImages.length) return;
-  idx = (i + currentImages.length) % currentImages.length; // 首尾循环
-  $('carouselStage').querySelectorAll('img').forEach((img, k) =>
-    img.classList.toggle('active', k === idx)
-  );
-  renderThumbs();
-  updateCounter();
-}
-
-function renderThumbs() {
-  const wrap = $('carouselThumbs');
-  wrap.innerHTML = currentImages
-    .map(
-      (src, i) =>
-        `<button class="pd-thumb ${i === idx ? 'active' : ''}" data-i="${i}" aria-label="Image ${i + 1}"><img src="${escapeHtml(src)}" alt="" /></button>`
-    )
-    .join('');
-}
-
-function updateCounter() {
-  $('carouselCounter').textContent = currentImages.length
-    ? `${idx + 1} / ${currentImages.length}`
-    : '';
-}
-
-/* ---------- 颜色 / 款式选项 ---------- */
-function renderOptions() {
-  const vs = product.variants || [];
-  const colors = [...new Set(vs.map((v) => v.color).filter(Boolean))];
-  const styles = [...new Set(vs.map((v) => v.style).filter(Boolean))];
-
-  $('optColorGroup').classList.toggle('hidden', !colors.length);
-  $('optStyleGroup').classList.toggle('hidden', !styles.length);
-
-  // 颜色组：始终全部可选
-  $('optColors').innerHTML = colors
-    .map(
-      (c) =>
-        `<button class="opt-chip ${c === selColor ? 'active' : ''}" data-v="${escapeHtml(c)}">${escapeHtml(c)}</button>`
-    )
-    .join('');
-
-  // 款式组：与当前颜色不搭配的置灰
-  $('optStyles').innerHTML = styles
-    .map((s) => {
-      const available = !selColor || vs.some((v) => v.color === selColor && v.style === s);
-      return `<button class="opt-chip ${s === selStyle ? 'active' : ''} ${available ? '' : 'disabled'}" data-v="${escapeHtml(s)}">${escapeHtml(s)}</button>`;
-    })
-    .join('');
-
-  const picked = [selColor, selStyle].filter(Boolean).join(' · ');
-  $('optSelected').innerHTML = picked
-    ? `Selected: <b>${escapeHtml(picked)}</b>`
-    : (colors.length || styles.length ? 'Pick your color &amp; style ♟' : '');
-}
-
-/** 选中后保证组合可用：若款式与颜色不匹配则回退到该颜色的首个款式 */
-function normalizeSelection() {
-  const vs = product.variants || [];
-  if (selColor && selStyle && !vs.some((v) => v.color === selColor && v.style === selStyle)) {
-    const first = vs.find((v) => v.color === selColor);
-    selStyle = first ? first.style : '';
-  }
-}
-
-/* ---------- 页面骨架 ---------- */
-function renderProduct() {
-  document.title = `${product.name} · LeapChess`;
-  const hasOptions = (product.variants || []).length > 0;
-  $('pdWrap').innerHTML = `
-    <a class="pd-back" href="index.html#shop">← Back to Shop</a>
-    <div class="pd-layout">
-      <!-- 左侧：图片轮播 -->
-      <div class="pd-gallery">
-        <div class="pd-carousel">
-          <div class="pd-stage" id="carouselStage"></div>
-          ${'<button class="pd-arrow pd-prev" id="carouselPrev" aria-label="Previous">‹</button><button class="pd-arrow pd-next" id="carouselNext" aria-label="Next">›</button>'}
-          <span class="pd-counter" id="carouselCounter"></span>
-          <span class="pd-variant-badge hidden" id="carouselBadge"></span>
-        </div>
-        <div class="pd-thumbs" id="carouselThumbs"></div>
-      </div>
-      <!-- 右侧：产品信息 -->
-      <div class="pd-info">
-        <span class="product-cat">${CAT_LABEL[product.category] || escapeHtml(product.category)}</span>
-        <h1 class="pd-name">${escapeHtml(product.name)}</h1>
-        <div class="pd-price">$ ${Number(product.price).toFixed(2)}</div>
-        <div class="pd-divider"></div>
-        ${hasOptions ? `
-        <div class="pd-options">
-          <div class="opt-group hidden" id="optColorGroup">
-            <span class="opt-title">♟ Color</span>
-            <div class="opt-list" id="optColors"></div>
+  const meta = CAT_META[p.category] || { file: 'products.html', title: 'Products', kicker: 'Collection' };
+  const main = p.images?.length ? [...p.images] : [PLACEHOLDER];
+  const detail = p.details?.length ? [...p.details] : [PLACEHOLDER];
+  let qty = 1;
+  root.innerHTML = `
+    <div class="wrap pd-wrap">
+      <p class="pd-crumb">
+        <a class="link-more" href="${meta.file}"><span>← ${escapeHtml(meta.title)}</span></a>
+      </p>
+      <div class="pd-grid">
+        <div>
+          <div class="pd-gallery">
+            <div class="pd-main" id="pdMain" aria-label="Main images (swipe)">
+              ${main.map((src) => `<img src="${src}" alt="${escapeHtml(p.name)} main image">`).join('')}
+            </div>
+            ${main.length > 1 ? `
+            <button class="pd-arrow pd-prev" id="pdPrev" aria-label="Previous image">‹</button>
+            <button class="pd-arrow pd-next" id="pdNext" aria-label="Next image">›</button>` : ''}
           </div>
-          <div class="opt-group hidden" id="optStyleGroup">
-            <span class="opt-title">♜ Style</span>
-            <div class="opt-list" id="optStyles"></div>
+          ${main.length > 1 ? '<p class="pd-swipe-hint">← Swipe · Main images 1:1 →</p>' : ''}
+          <div class="pd-detail">
+            ${detail.map((src) => `<img src="${src}" alt="${escapeHtml(p.name)} detail image" loading="lazy">`).join('')}
           </div>
-          <p class="opt-selected" id="optSelected"></p>
         </div>
-        <div class="pd-divider"></div>` : ''}
-        <div class="pd-desc">
-          <span class="opt-title">Description</span>
-          <p>${escapeHtml(product.description || 'No description yet.')}</p>
-        </div>
-        <div class="pd-actions">
-          <a class="btn btn-primary" href="index.html#shop">Browse More Gear ♞</a>
+        <div class="pd-info">
+          <span class="micro-label left solo">${escapeHtml(meta.kicker)}</span>
+          <h1 class="pd-name">${escapeHtml(p.name)}</h1>
+          <p class="pd-price">${money(p.price)}</p>
+          <p class="pd-desc">${escapeHtml(p.description)}</p>
+          <div class="pd-buy">
+            <span class="stepper">
+              <button id="qMinus" aria-label="Decrease quantity">−</button>
+              <output id="qOut">1</output>
+              <button id="qPlus" aria-label="Increase quantity">+</button>
+            </span>
+            <button class="btn" id="pdAdd"><span>Add to Cart</span></button>
+          </div>
+          <div class="pd-block2">
+            <h3 class="micro-label left solo">Product Information</h3>
+            ${(p.info || []).map((t) => `<p>${escapeHtml(t)}</p>`).join('')}
+          </div>
         </div>
       </div>
-    </div>
-  `;
-  bindEvents();
-  renderOptions();
-  renderCarousel();
-}
+    </div>`;
 
-function bindEvents() {
-  $('carouselPrev').addEventListener('click', () => showAt(idx - 1));
-  $('carouselNext').addEventListener('click', () => showAt(idx + 1));
-  $('carouselThumbs').addEventListener('click', (e) => {
-    const btn = e.target.closest('.pd-thumb');
-    if (btn) showAt(Number(btn.dataset.i));
-  });
-  $('optColors')?.addEventListener('click', (e) => {
-    const chip = e.target.closest('.opt-chip');
-    if (!chip) return;
-    selColor = selColor === chip.dataset.v ? '' : chip.dataset.v;
-    normalizeSelection();
-    renderOptions();
-    renderCarousel();
-  });
-  $('optStyles')?.addEventListener('click', (e) => {
-    const chip = e.target.closest('.opt-chip');
-    if (!chip || chip.classList.contains('disabled')) return;
-    selStyle = selStyle === chip.dataset.v ? '' : chip.dataset.v;
-    normalizeSelection();
-    renderOptions();
-    renderCarousel();
-  });
-}
+  $('#qMinus').addEventListener('click', () => { qty = Math.max(1, qty - 1); $('#qOut').textContent = qty; });
+  $('#qPlus').addEventListener('click', () => { qty = Math.min(99, qty + 1); $('#qOut').textContent = qty; });
+  $('#pdAdd').addEventListener('click', () => window.PF.addToCart(p.id, qty));
 
-function initNav() {
-  const toggle = document.getElementById('navToggle');
-  const links = document.getElementById('navLinks');
-  toggle?.addEventListener('click', () => links.classList.toggle('open'));
-}
-
-(async function init() {
-  document.getElementById('year').textContent = new Date().getFullYear();
-  initNav();
-  await detectApiBase();
-  renderNavUser();
-
-  const id = getProductId();
-  if (!id) {
-    $('pdWrap').innerHTML = '<div class="loading">Invalid product link — no product id provided.</div>';
-    return;
+  /* 主图左右箭头：平滑滚动切换一张 + 边界禁用（scroll 防抖 100ms 同步状态） */
+  const mainEl = $('#pdMain');
+  const prevBtn = $('#pdPrev'), nextBtn = $('#pdNext');
+  if (mainEl && prevBtn && nextBtn) {
+    // 以一张主图宽度 + gap 为步长，保证每次点击恰好切换一张（scroll-snap 对齐）
+    const stepW = () => {
+      const img = mainEl.querySelector('img');
+      return img ? Math.round(img.getBoundingClientRect().width) + 12 : 300;
+    };
+    prevBtn.addEventListener('click', () => mainEl.scrollBy({ left: -stepW(), behavior: 'smooth' }));
+    nextBtn.addEventListener('click', () => mainEl.scrollBy({ left: stepW(), behavior: 'smooth' }));
+    const syncArrows = () => {
+      const max = mainEl.scrollWidth - mainEl.clientWidth;
+      prevBtn.disabled = mainEl.scrollLeft <= 2;
+      nextBtn.disabled = mainEl.scrollLeft >= max - 2;
+    };
+    let deb = null;
+    mainEl.addEventListener('scroll', () => { clearTimeout(deb); deb = setTimeout(syncArrows, 100); });
+    syncArrows();
   }
-  try {
-    const { product: p } = await api(`/products/${id}`);
-    product = p;
-    renderProduct();
-  } catch (err) {
-    $('pdWrap').innerHTML = `<div class="loading">Failed to load product: ${escapeHtml(err.message)}<br><a href="index.html#shop">← Back to Shop</a></div>`;
-  }
-})();
+}
+
+init().finally(() => window.PF.observeReveals());
