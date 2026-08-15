@@ -147,9 +147,20 @@ async function initSchema() {
         image TEXT DEFAULT '',
         images TEXT DEFAULT '[]',
         variants TEXT DEFAULT '[]',
+        details TEXT DEFAULT '[]',
+        info TEXT DEFAULT '[]',
         stock INTEGER NOT NULL DEFAULT 0,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
+      )`);
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS slides (
+        id SERIAL PRIMARY KEY,
+        image TEXT NOT NULL,
+        alt TEXT DEFAULT '',
+        sort INTEGER NOT NULL DEFAULT 0,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        created_at TIMESTAMPTZ DEFAULT NOW()
       )`);
   } else {
     await db.query(`
@@ -170,15 +181,28 @@ async function initSchema() {
         image TEXT DEFAULT '',
         images TEXT DEFAULT '[]',
         variants TEXT DEFAULT '[]',
+        details TEXT DEFAULT '[]',
+        info TEXT DEFAULT '[]',
         stock INTEGER NOT NULL DEFAULT 0,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )`);
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS slides (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        image TEXT NOT NULL,
+        alt TEXT DEFAULT '',
+        sort INTEGER NOT NULL DEFAULT 0,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )`);
   }
 
   // 平滑迁移：旧库补列（幂等）
   await ensureColumn('products', 'images', "TEXT DEFAULT '[]'");
   await ensureColumn('products', 'variants', "TEXT DEFAULT '[]'");
+  await ensureColumn('products', 'details', "TEXT DEFAULT '[]'");
+  await ensureColumn('products', 'info', "TEXT DEFAULT '[]'");
 }
 
 /** 若表中缺少某列则补上（SQLite 用 pragma，PostgreSQL 用 information_schema） */
@@ -212,11 +236,12 @@ async function storageStats() {
     return { totalBytes: Number(total[0].bytes), productBytes: Number(rows[0].bytes) };
   }
 
-  // SQLite：总占用 = 数据文件体积；商品占用 = 图片/变体等文本列长度累加
+  // SQLite：总占用 = 数据文件体积；商品占用 = 图片/变体/详情/卖点等文本列长度累加
   const totalBytes = dbFilePath && fs.existsSync(dbFilePath) ? fs.statSync(dbFilePath).size : 0;
   const rows = await impl.query(`
     SELECT COALESCE(SUM(
       LENGTH(COALESCE(images, '')) + LENGTH(COALESCE(variants, '')) + LENGTH(COALESCE(image, ''))
+      + LENGTH(COALESCE(details, '')) + LENGTH(COALESCE(info, ''))
     ), 0) AS bytes FROM products`);
   return { totalBytes, productBytes: Number(rows[0].bytes) };
 }

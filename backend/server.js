@@ -56,6 +56,16 @@ function toVariants(value) {
     .filter((v) => v.color || v.style || v.images.length);
 }
 
+/** 归一化卖点文案：JSON 字符串 / 数组 → 字符串数组 */
+function toInfo(value) {
+  let arr = [];
+  if (Array.isArray(value)) arr = value;
+  else if (typeof value === 'string' && value.trim().startsWith('[')) {
+    try { arr = JSON.parse(value); } catch { arr = []; }
+  }
+  return arr.map((s) => String(s).trim()).filter(Boolean);
+}
+
 /** 出库前把 JSON 文本列解析为数组，便于前端直接使用 */
 function parseProduct(p) {
   if (!p) return p;
@@ -63,6 +73,8 @@ function parseProduct(p) {
     ...p,
     images: toImages(p.images, p.image),
     variants: toVariants(p.variants),
+    details: toImages(p.details),
+    info: toInfo(p.info),
   };
 }
 
@@ -99,7 +111,7 @@ function materializeVariants(variants) {
   return variants.map((v) => ({ ...v, images: materializeImages(v.images) }));
 }
 
-/** 收集商品引用的全部 /uploads URL（主图 + 变体图集） */
+/** 收集商品引用的全部 /uploads URL（主图 + 变体图集 + 详情图） */
 function productUploadUrls(p) {
   const urls = [];
   for (const src of p.images || []) {
@@ -110,17 +122,25 @@ function productUploadUrls(p) {
       if (typeof src === 'string' && src.startsWith('/uploads/')) urls.push(src);
     }
   }
+  for (const src of p.details || []) {
+    if (typeof src === 'string' && src.startsWith('/uploads/')) urls.push(src);
+  }
   return urls;
 }
 
-/** best-effort 清理不再被任何商品引用的磁盘文件（内容哈希去重下安全） */
+/** best-effort 清理不再被任何商品/轮播图引用的磁盘文件（内容哈希去重下安全） */
 async function removeUnreferenced(urls) {
   try {
-    const rows = await db.query('SELECT images, variants FROM products');
+    const rows = await db.query('SELECT images, variants, details FROM products');
+    const slides = await db.query('SELECT image FROM slides');
     for (const url of new Set(urls)) {
-      const referenced = rows.some(
-        (r) => String(r.images || '').includes(url) || String(r.variants || '').includes(url)
-      );
+      const referenced =
+        rows.some(
+          (r) =>
+            String(r.images || '').includes(url) ||
+            String(r.variants || '').includes(url) ||
+            String(r.details || '').includes(url)
+        ) || slides.some((s) => String(s.image || '') === url);
       if (referenced) continue;
       const abs = path.join(UPLOAD_DIR, url.slice('/uploads/'.length));
       if (fs.existsSync(abs)) fs.unlinkSync(abs);
@@ -206,6 +226,19 @@ function adminOnly(req, res, next) {
   res.status(403).json({ error: 'Super admin access required' });
 }
 
+/** 可选鉴权：不阻断请求，仅判断携带的 token 是否为有效管理员（用于公开接口的管理员增强） */
+function bearerAdmin(req) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return false;
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    return Boolean(user && user.role === 'admin');
+  } catch {
+    return false;
+  }
+}
+
 /* ---------------- 认证接口 ---------------- */
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body || {};
@@ -235,9 +268,9 @@ app.get('/api/products', async (req, res) => {
   const { category } = req.query;
   let rows;
   if (category) {
-    rows = await db.query('SELECT * FROM products WHERE category = ? ORDER BY id DESC', [category]);
+    rows = await db.query('SELECT * FROM products WHERE category = ? ORDER BY id ASC', [category]);
   } else {
-    rows = await db.query('SELECT * FROM products ORDER BY id DESC');
+    rows = await db.query('SELECT * FROM products ORDER BY id ASC');
   }
   res.json({ products: rows.map(parseProduct) });
 });
@@ -259,7 +292,7 @@ app.get('/api/products/:id/storage', authRequired, adminOnly, async (req, res) =
 
 // 新增（管理员）
 app.post('/api/products', authRequired, adminOnly, async (req, res) => {
-  const { name, category, price, description, image, images, variants, stock } = req.body || {};
+  const { name, category, price, description, image, images, variants, details, info, stock } = req.body || {};
   if (!name || !String(name).trim()) {
     return res.status(400).json({ error: 'Product name is required' });
   }
@@ -267,8 +300,9 @@ app.post('/api/products', authRequired, adminOnly, async (req, res) => {
   if (!imgList.length) {
     return res.status(400).json({ error: 'Please upload at least 1 main image' });
   }
+  const detailList = materializeImages(toImages(details));
   const { id } = await db.run(
-    'INSERT INTO products (name, category, price, description, image, images, variants, stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO products (name, category, price, description, image, images, variants, details, info, stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       String(name).trim(),
       category || 'chess-timer',
@@ -277,6 +311,8 @@ app.post('/api/products', authRequired, adminOnly, async (req, res) => {
       imgList[0],
       JSON.stringify(imgList),
       JSON.stringify(materializeVariants(toVariants(variants))),
+      JSON.stringify(detailList),
+      JSON.stringify(toInfo(info)),
       Number(stock) || 0,
     ]
   );
@@ -297,8 +333,11 @@ app.put('/api/products/:id', authRequired, adminOnly, async (req, res) => {
     return res.status(400).json({ error: 'Please upload at least 1 main image' });
   }
   const variantList = b.variants !== undefined ? materializeVariants(toVariants(b.variants)) : p.variants;
+  const hasNewDetails = b.details !== undefined;
+  const detailList = materializeImages(hasNewDetails ? toImages(b.details) : p.details);
+  const infoList = b.info !== undefined ? toInfo(b.info) : p.info;
   await db.run(
-    `UPDATE products SET name = ?, category = ?, price = ?, description = ?, image = ?, images = ?, variants = ?, stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    `UPDATE products SET name = ?, category = ?, price = ?, description = ?, image = ?, images = ?, variants = ?, details = ?, info = ?, stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
     [
       b.name !== undefined ? String(b.name).trim() : p.name,
       b.category !== undefined ? b.category : p.category,
@@ -307,6 +346,8 @@ app.put('/api/products/:id', authRequired, adminOnly, async (req, res) => {
       imgList[0],
       JSON.stringify(imgList),
       JSON.stringify(variantList),
+      JSON.stringify(detailList),
+      JSON.stringify(infoList),
       b.stock !== undefined ? Number(b.stock) || 0 : p.stock,
       req.params.id,
     ]
@@ -323,6 +364,74 @@ app.delete('/api/products/:id', authRequired, adminOnly, async (req, res) => {
   const urls = productUploadUrls(parseProduct(exist[0]));
   await db.run('DELETE FROM products WHERE id = ?', [req.params.id]);
   await removeUnreferenced(urls);
+  res.json({ ok: true });
+});
+
+/* ---------------- 首页轮播图（slides）接口 ---------------- */
+// 列表（公开，按 sort 升序仅返回启用项；管理员携 token 加 ?all=1 返回全部）
+app.get('/api/slides', async (req, res) => {
+  const all = req.query.all === '1' && bearerAdmin(req);
+  const rows = all
+    ? await db.query('SELECT * FROM slides ORDER BY sort ASC, id ASC')
+    : await db.query('SELECT * FROM slides WHERE enabled = 1 ORDER BY sort ASC, id ASC');
+  res.json({ slides: rows });
+});
+
+// 新增（管理员）：image 支持 data URL 自动落盘；sort 缺省追加到末尾
+app.post('/api/slides', authRequired, adminOnly, async (req, res) => {
+  const { image, alt, sort, enabled } = req.body || {};
+  if (!image || typeof image !== 'string') {
+    return res.status(400).json({ error: 'Slide image is required' });
+  }
+  const src = image.startsWith('data:') ? saveDataUrl(image) : image;
+  if (!src) return res.status(400).json({ error: 'Invalid image data' });
+  let sortVal;
+  if (sort !== undefined) {
+    sortVal = Number(sort) || 0;
+  } else {
+    const rows = await db.query('SELECT COALESCE(MAX(sort), 0) AS m FROM slides');
+    sortVal = Number(rows[0].m) + 1;
+  }
+  const { id } = await db.run('INSERT INTO slides (image, alt, sort, enabled) VALUES (?, ?, ?, ?)', [
+    src,
+    String(alt || '').trim(),
+    sortVal,
+    enabled === 0 || enabled === false ? 0 : 1,
+  ]);
+  const rows = await db.query('SELECT * FROM slides WHERE id = ?', [id]);
+  res.status(201).json({ slide: rows[0] });
+});
+
+// 更新（管理员）：alt / sort / enabled / image
+app.put('/api/slides/:id', authRequired, adminOnly, async (req, res) => {
+  const exist = await db.query('SELECT * FROM slides WHERE id = ?', [req.params.id]);
+  if (!exist[0]) return res.status(404).json({ error: 'Slide not found' });
+  const s = exist[0];
+  const b = req.body || {};
+  const oldUrl = s.image;
+  let img = s.image;
+  if (b.image !== undefined) {
+    img = typeof b.image === 'string' && b.image.startsWith('data:') ? saveDataUrl(b.image) : b.image;
+    if (!img) return res.status(400).json({ error: 'Invalid image data' });
+  }
+  await db.run('UPDATE slides SET image = ?, alt = ?, sort = ?, enabled = ? WHERE id = ?', [
+    img,
+    b.alt !== undefined ? String(b.alt).trim() : s.alt,
+    b.sort !== undefined ? Number(b.sort) || 0 : s.sort,
+    b.enabled !== undefined ? (b.enabled ? 1 : 0) : s.enabled,
+    req.params.id,
+  ]);
+  if (img !== oldUrl) await removeUnreferenced([oldUrl]);
+  const rows = await db.query('SELECT * FROM slides WHERE id = ?', [req.params.id]);
+  res.json({ slide: rows[0] });
+});
+
+// 删除（管理员）+ 无引用磁盘清理
+app.delete('/api/slides/:id', authRequired, adminOnly, async (req, res) => {
+  const exist = await db.query('SELECT * FROM slides WHERE id = ?', [req.params.id]);
+  if (!exist[0]) return res.status(404).json({ error: 'Slide not found' });
+  await db.run('DELETE FROM slides WHERE id = ?', [req.params.id]);
+  await removeUnreferenced([exist[0].image]);
   res.json({ ok: true });
 });
 
