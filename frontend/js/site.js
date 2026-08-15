@@ -84,7 +84,7 @@ try {
   });
 } catch { /* 存储不可用 → 内存态 */ }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(cart))); } catch { /* noop */ } };
-const money = (n) => `$${n}.00`;
+const money = (n) => `$${Number(n).toFixed(2)}`;
 /* 商品表后端异步拉取（模块级缓存），到位前购物车以空列表渲染 */
 let products = [];
 const find = (id) => products.find((p) => p.id === id);

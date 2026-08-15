@@ -26,7 +26,7 @@ export const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
 
-export const money = (n) => `$${Number(n) || 0}.00`;
+export const money = (n) => `$${(Number(n) || 0).toFixed(2)}`;
 
 /** 前端静态兜底图（品牌资产；内容图一律来自 /uploads/） */
 export const PLACEHOLDER = 'assets/placeholder.svg';
