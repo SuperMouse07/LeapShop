@@ -12,11 +12,24 @@ const CAT_LABEL = {
 };
 const KNOWN_CATS = Object.keys(CAT_LABEL);
 const MAX_IMAGES = 10;
-const MAX_IMAGE_SIZE = 8 * 1024 * 1024; // 单张图片大小上限 8MB（后端 express.json 限 24mb）
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024; // 单张图片大小上限 8MB（防异常大文件）
+const MAX_TOTAL_IMAGE_SIZE = 50 * 1024 * 1024; // 单商品图片总量上限 50MB（二进制口径，后端 express.json 限 80mb 容纳 base64 膨胀）
+const MAX_BODY_CHARS = 75 * 1024 * 1024; // 提交 JSON 字符数终检阈值（低于后端 80mb 限制留余量）
 const $ = (id) => document.getElementById(id);
 
 let pendingImages = [];  // 主图图集（URL 或 dataURL），第一张为封面
 let pendingDetails = []; // 详情图图集
+
+/** 估算 dataURL 对应的二进制字节数（服务器 URL 不计入，其不在提交体中重复传输原始字节） */
+function dataUrlBytes(src) {
+  if (typeof src !== 'string' || !src.startsWith('data:')) return 0;
+  const i = src.indexOf(',');
+  return i < 0 ? 0 : Math.ceil(((src.length - i - 1) * 3) / 4);
+}
+/** 当前两个图集待上传图片的总二进制字节数 */
+function pendingImageBytes() {
+  return [...pendingImages, ...pendingDetails].reduce((s, src) => s + dataUrlBytes(src), 0);
+}
 
 /* ---------- Access guard（内置登录） ---------- */
 function showOnly(panelId) {
@@ -500,6 +513,10 @@ function bindGallery(boxId, fileInputId, addId, getList) {
         setMsg(`"${file.name}" is too large (max 8MB) and was skipped.`, false);
         continue;
       }
+      if (pendingImageBytes() + file.size > MAX_TOTAL_IMAGE_SIZE) {
+        setMsg(`Total images exceed the 50MB per-product limit — "${file.name}" was skipped.`, false);
+        continue;
+      }
       const dataUrl = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
@@ -539,11 +556,16 @@ $('productForm').addEventListener('submit', async (e) => {
     // variants 不在新界面展示，编辑时不提交以保留旧值
   };
   try {
+    const payload = JSON.stringify(body);
+    if (payload.length > MAX_BODY_CHARS) {
+      setMsg('Images are too large in total (limit ≈ 50MB per product). Please remove some images.', false);
+      return;
+    }
     if (editId) {
-      await api(`/products/${editId}`, { method: 'PUT', body: JSON.stringify(body) });
+      await api(`/products/${editId}`, { method: 'PUT', body: payload });
       setMsg(`Product #${editId} updated ✓`);
     } else {
-      const { product } = await api('/products', { method: 'POST', body: JSON.stringify(body) });
+      const { product } = await api('/products', { method: 'POST', body: payload });
       setMsg(`Product "${product.name}" uploaded ✓`);
     }
     resetForm();

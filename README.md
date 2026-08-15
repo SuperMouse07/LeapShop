@@ -79,7 +79,7 @@ node backend\test-crud.js                                       # 中文数据 C
 
 写操作需要请求头 `Authorization: Bearer <token>`；非管理员调用写接口返回 `403`。
 全站设置存于 `settings` 表（key/value），前台加载时应用网站标题 / LOGO / 首页公告 / 页脚联系方式，公告仅放行 `<strong>/<b>/<em>/<br>` 白名单标签；后台保存后经 BroadcastChannel 通知前台即时同步（无需刷新）。
-所有内容图（轮播图 / 商品主图 / 详情图）落盘存储于图片目录（生产为 Zeabur Volume 挂载点，由 `UPLOAD_DIR` 指定；本地默认 `backend/data/uploads`），数据库仅保存 `/uploads/...` URL 引用；文件以内容哈希命名，自动去重（每组图集最多 10 张，商品至少 1 张主图；后台单张大小上限 8MB）。删除商品/轮播/换图时自动清理无引用的图片文件。
+所有内容图（轮播图 / 商品主图 / 详情图）落盘存储于图片目录（生产为 Zeabur Volume 挂载点，由 `UPLOAD_DIR` 指定；本地默认 `backend/data/uploads`），数据库仅保存 `/uploads/...` URL 引用；文件以内容哈希命名，自动去重（每组图集最多 10 张，商品至少 1 张主图；后台单张大小上限 8MB，单商品图片总量上限 50MB，后端 JSON 解析限 80mb 容纳 base64 膨胀）。删除商品/轮播/换图时自动清理无引用的图片文件。
 商品另支持 `variants` 颜色/款式变体字段（API 兼容保留，新后台界面不再展示与编辑）。
 
 ## Zeabur 部署（针对 Zeabur 平台特性适配）

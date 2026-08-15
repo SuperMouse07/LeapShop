@@ -25,7 +25,7 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '24mb' })); // 多图 base64 内嵌存储
+app.use(express.json({ limit: '80mb' })); // 多图 base64 内嵌提交：单商品图片总量上限 50MB（二进制口径），base64 膨胀约 1/3 后约 67MB，预留 JSON 开销余量
 
 /* ---------------- 数据规整工具 ---------------- */
 /** 归一化图片集合：兼容旧单图字段 / JSON 字符串 / 数组，最多 MAX_IMAGES 张 */
