@@ -79,7 +79,7 @@ function parseProduct(p) {
 }
 
 /* ---------------- 图片落盘（数据库只存 URL 引用） ---------------- */
-const DATA_URL_RE = /^data:image\/(png|jpe?g|webp|gif);base64,([\s\S]+)$/;
+const DATA_URL_RE = /^data:image\/([\w.+-]+);base64,([\s\S]+)$/;
 
 /** base64 图片写入磁盘，以内容哈希命名（天然去重、迁移幂等），返回 /uploads/... URL */
 function saveDataUrl(dataUrl) {
@@ -89,7 +89,8 @@ function saveDataUrl(dataUrl) {
     const buf = Buffer.from(m[2], 'base64');
     if (!buf.length) return null;
     const hash = crypto.createHash('sha1').update(buf).digest('hex');
-    const ext = m[1].toLowerCase() === 'jpeg' ? 'jpg' : m[1].toLowerCase();
+    const rawExt = m[1].toLowerCase();
+    const ext = rawExt === 'jpeg' ? 'jpg' : rawExt === 'svg+xml' ? 'svg' : rawExt;
     const sub = hash.slice(0, 2);
     const abs = path.join(UPLOAD_DIR, sub, `${hash}.${ext}`);
     fs.mkdirSync(path.dirname(abs), { recursive: true });
@@ -100,11 +101,14 @@ function saveDataUrl(dataUrl) {
   }
 }
 
-/** 图片列表物化：data URL 落盘转 URL，已有 URL 原样保留 */
+/** 图片列表物化：data URL 落盘转 URL，已有 URL 原样保留；落盘失败的 data URL 丢弃（避免把长串 base64 写进数据库） */
 function materializeImages(list) {
-  return list.map((src) =>
-    typeof src === 'string' && src.startsWith('data:') ? saveDataUrl(src) || src : src
-  );
+  return list
+    .map((src) => {
+      if (typeof src === 'string' && src.startsWith('data:')) return saveDataUrl(src);
+      return typeof src === 'string' ? src : null;
+    })
+    .filter(Boolean);
 }
 
 function materializeVariants(variants) {
