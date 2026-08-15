@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <radialGradient id="gm" cx="30%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#ff3ec8" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ff3ec8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gc" cx="75%" cy="70%" r="60%">
+      <stop offset="0%" stop-color="#25c9e8" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#25c9e8" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect width="400" height="300" fill="#0a0d14"/>
+  <rect width="400" height="300" fill="url(#gm)" filter="url(#blur)"/>
+  <rect width="400" height="300" fill="url(#gc)" filter="url(#blur)"/>
+  <text x="200" y="178" font-size="120" text-anchor="middle" fill="#ffffff" opacity="0.92" font-family="Segoe UI Symbol, sans-serif">&#9822;</text>
+  <text x="200" y="252" font-size="16" text-anchor="middle" fill="#a9aebc" letter-spacing="4" font-family="Arial, sans-serif">LEAPCHESS</text>
+</svg>

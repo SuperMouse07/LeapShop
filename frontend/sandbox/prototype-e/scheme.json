@@ -1,0 +1,10 @@
+{
+  "id": "prototype-e",
+  "name": "Prototype E",
+  "title": "酸性热力 Acid Thermal",
+  "description": "参考设计稿（首页.svg）的酸性图形美学：近黑基底叠加热成像霓虹光带（品红/青蓝/橙黄）与颗粒噪点，塑料 wrap 高光斜纹质感；超粗切角英文展示字 + 点阵描边字；黑底胶囊 CTA 带霓虹渐变边缘；黑色半透明导航。单页锚点结构：Hero / 商品系列 / 品牌精神 / 冠军历程。纯静态 mock 数据，零 API 调用。",
+  "status": "active",
+  "entry": "index.html",
+  "pages": ["index.html"],
+  "updated": "2026-08-15"
+}

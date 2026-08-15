@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prototype E · 酸性热力 Acid Thermal — LeapChess UI Sandbox</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <!-- 热力光带与塑料高光固定背景层 -->
+  <div class="thermal" aria-hidden="true"></div>
+  <div class="plastic" aria-hidden="true"></div>
+
+  <div class="sandbox-banner">UI SANDBOX · Prototype E（酸性热力 Acid Thermal）· 纯静态设计验证，不连接任何 API · <a href="../portal.html">返回方案门户 ↩</a></div>
+
+  <nav class="nav" aria-label="主导航">
+    <a class="brand" href="#hero">
+      <span class="script" id="brandScript">LeapChess</span>
+      <span class="knight" aria-hidden="true">♞</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="打开菜单" aria-expanded="false">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="#hero" class="active">首页</a>
+      <a href="#products">商品系列</a>
+      <a href="#values">品牌精神</a>
+      <a href="#journey">冠军历程</a>
+      <a href="../portal.html" class="portal-link">Portal</a>
+    </div>
+  </nav>
+
+  <!-- ============ Hero ============ -->
+  <header class="hero" id="hero">
+    <div class="hero-logo"><span id="logoScript">LeapChess</span> <span class="deco" aria-hidden="true">♞ ✦</span></div>
+    <h1 class="hero-display" aria-label="LEAP CHESS FUTURE">
+      <span>
+        <span class="line cut" id="dispTop">LEAP</span>
+        <span class="line cut" id="dispBottom">CHESS</span>
+      </span>
+      <span class="dot-text" id="dispDot">FUTURE</span>
+    </h1>
+    <p class="hero-title-zh" id="titleZh">落子之间 制胜未来</p>
+    <p class="hero-sub-zh" id="subZh">2026 LEAPCHESS 全球棋具臻选系列</p>
+    <div class="hero-cta">
+      <a class="btn-pill" href="#products">立即选购</a>
+      <a class="btn-ghost" href="#values">了解品牌 ↓</a>
+    </div>
+  </header>
+
+  <!-- ============ 商品系列 ============ -->
+  <section class="section" id="products">
+    <div class="sec-head reveal">
+      <div class="sec-kicker">Products</div>
+      <h2 class="sec-title">商品系列 <span class="neon-mag">/</span> 赛级臻选</h2>
+    </div>
+    <div class="filter-bar reveal" id="filterBar" role="group" aria-label="商品分类筛选"></div>
+    <div class="product-grid" id="productGrid"></div>
+  </section>
+
+  <!-- ============ 品牌精神 ============ -->
+  <section class="section" id="values">
+    <div class="sec-head reveal">
+      <div class="sec-kicker">Spirit</div>
+      <h2 class="sec-title">品牌精神 <span class="neon-cyn">/</span> 为棋手而生</h2>
+    </div>
+    <div class="value-grid" id="valueGrid"></div>
+    <div class="stat-strip reveal">
+      <span class="num" id="statNum">500,000+</span>
+      <span class="label" id="statLabel">Chess Clubs Supported Worldwide</span>
+    </div>
+  </section>
+
+  <!-- ============ 冠军历程 ============ -->
+  <section class="section" id="journey">
+    <div class="sec-head reveal">
+      <div class="sec-kicker">Journey</div>
+      <h2 class="sec-title">冠军历程 <span class="neon-mag">/</span> 下一步即是未来</h2>
+    </div>
+    <div class="timeline" id="timeline"></div>
+  </section>
+
+  <!-- ============ 页脚 ============ -->
+  <footer class="footer">
+    <div class="inner">
+      <span class="script">LeapChess ♞</span>
+      <div class="links">
+        <a href="#hero">首页</a>
+        <a href="#products">商品系列</a>
+        <a href="#values">品牌精神</a>
+        <a href="#journey">冠军历程</a>
+        <a href="../portal.html">方案门户</a>
+      </div>
+      <div class="copy">© <span id="year">2026</span> LEAPCHESS · PROTOTYPE E — ACID THERMAL · SANDBOX ONLY, NO API</div>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { BRAND, CATEGORIES, PRODUCTS, VALUES, JOURNEY, escapeHtml } from './js/mock.js';
+
+    /* ---------- Hero 文案装配 ---------- */
+    document.getElementById('logoScript').textContent = BRAND.logoScript;
+    document.getElementById('brandScript').textContent = BRAND.logoScript;
+    document.getElementById('dispTop').textContent = BRAND.displayTop;
+    document.getElementById('dispBottom').textContent = BRAND.displayBottom;
+    document.getElementById('dispDot').textContent = BRAND.displayDot;
+    document.getElementById('titleZh').textContent = BRAND.titleZh;
+    document.getElementById('subZh').textContent = BRAND.subZh;
+    document.getElementById('statNum').textContent = BRAND.stat.value;
+    document.getElementById('statLabel').textContent = BRAND.stat.label;
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    /* ---------- 商品渲染 + 分类筛选 ---------- */
+    const grid = document.getElementById('productGrid');
+    const filterBar = document.getElementById('filterBar');
+    let activeCat = 'All';
+
+    function renderFilters() {
+      filterBar.innerHTML = CATEGORIES.map((c) =>
+        `<button class="chip${c === activeCat ? ' active' : ''}" data-cat="${escapeHtml(c)}">${escapeHtml(c)}</button>`
+      ).join('');
+    }
+
+    function renderProducts() {
+      const list = activeCat === 'All' ? PRODUCTS : PRODUCTS.filter((p) => p.category === activeCat);
+      grid.innerHTML = list.map((p) => `
+        <article class="product-card reveal on">
+          ${p.badge ? `<span class="badge">${escapeHtml(p.badge)}</span>` : ''}
+          <div class="thumb"><img src="./assets/placeholder.svg" alt="${escapeHtml(p.name)}" loading="lazy" /></div>
+          <div class="info">
+            <div class="cat">${escapeHtml(p.category)}</div>
+            <h3>${escapeHtml(p.name)}</h3>
+            <p class="desc">${escapeHtml(p.desc)}</p>
+            <div class="price-row">
+              <span class="price">$${Number(p.price).toFixed(2)}</span>
+              <button class="buy" type="button">加入购物袋</button>
+            </div>
+          </div>
+        </article>`).join('');
+    }
+
+    filterBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip');
+      if (!btn) return;
+      activeCat = btn.dataset.cat;
+      renderFilters();
+      renderProducts();
+    });
+
+    renderFilters();
+    renderProducts();
+
+    /* ---------- 品牌精神 ---------- */
+    document.getElementById('valueGrid').innerHTML = VALUES.map((v) => `
+      <div class="value-card reveal">
+        <div class="icon" aria-hidden="true">${escapeHtml(v.icon)}</div>
+        <h3>${escapeHtml(v.title)}</h3>
+        <p>${escapeHtml(v.desc)}</p>
+      </div>`).join('');
+
+    /* ---------- 冠军历程 ---------- */
+    document.getElementById('timeline').innerHTML = JOURNEY.map((j) => `
+      <div class="t-item reveal">
+        <span class="year">${escapeHtml(j.year)}</span><span class="stage">${escapeHtml(j.stage)}</span>
+        <p>${escapeHtml(j.text)}</p>
+      </div>`).join('');
+
+    /* ---------- 汉堡菜单 ---------- */
+    const toggle = document.getElementById('navToggle');
+    const links = document.getElementById('navLinks');
+    toggle.addEventListener('click', () => {
+      const open = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+    links.addEventListener('click', (e) => {
+      if (e.target.tagName === 'A') links.classList.remove('open');
+    });
+
+    /* ---------- 锚点滚动高亮（scrollspy） ---------- */
+    const spyTargets = ['hero', 'products', 'values', 'journey'];
+    const navAnchors = links.querySelectorAll('a[href^="#"]');
+    const spy = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (!en.isIntersecting) return;
+        navAnchors.forEach((a) => {
+          a.classList.toggle('active', a.getAttribute('href') === '#' + en.target.id);
+        });
+      });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    spyTargets.forEach((id) => spy.observe(document.getElementById(id)));
+
+    /* ---------- 滚动浮现 ---------- */
+    const revealer = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (en.isIntersecting) {
+          en.target.classList.add('on');
+          revealer.unobserve(en.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach((el) => revealer.observe(el));
+  </script>
+</body>
+</html>

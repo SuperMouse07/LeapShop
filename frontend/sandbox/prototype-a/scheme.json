@@ -1,10 +1,10 @@
 {
   "id": "prototype-a",
   "name": "Prototype A",
-  "title": "首页改版基线",
-  "description": "基于主站 index.html 净化而来的示例原型：保留主站视觉骨架，商品区改用 mock 数据纯本地渲染，验证沙箱工作流本身。",
+  "title": "Refined Tournament Luxury 重设计",
+  "description": "v2 重设计（落实自 Canvas 高保真原型）：分层暖黑底 + 香槟金渐变（#F1D27E→#D4AF37→#A9822A）、衬线展示字 + 斜体金渐变强调行、1160px 容器与 104px 区块节奏、hairline 分割；微交互含主按钮光泽扫过、卡片上浮金晕、导航下划线滑入、chip 金胶囊、时间轴圆点光环、Why 卡描边序号水印。商品区 mock 数据纯本地渲染，零 API 调用。",
   "status": "active",
   "entry": "index.html",
   "pages": ["index.html"],
-  "updated": "2026-08-14"
+  "updated": "2026-08-15"
 }

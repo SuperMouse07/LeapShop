@@ -1,0 +1,10 @@
+{
+  "id": "prototype-f",
+  "name": "Prototype F",
+  "title": "Affordable Luxury · White Canvas, Gold & Black Editorial Gallery (Multi-page)",
+  "description": "An affordable-luxury editorial gallery on a white canvas (#FFFFFF), with gold (#D4AF37) × black (#12100E) contrast. Multi-page architecture: a consistent nav (logo left / seven links center / cart right) injected site-wide by site.js; Home with a full-bleed carousel (min(80vh,700px), 8s auto + manual dots), staggered featured cards, Why Leap and counter animations; Product Overview with four masonry series; four category pages; product detail page (1:1 scroll-snap main gallery + detail images + quantity / add to cart + product information); Our Journey with a centered brand story; cross-page cart drawer (pf_cart key: step / remove / one-click export, no checkout). Zero API calls.",
+  "status": "active",
+  "entry": "index.html",
+  "pages": ["index.html", "products.html", "chess-clock.html", "chess-board.html", "stopwatch.html", "lifestyle.html", "journey.html", "product.html"],
+  "updated": "2026-08-16"
+}

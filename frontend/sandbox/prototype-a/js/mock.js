@@ -19,6 +19,7 @@ const PRODUCTS = [
     price: 89.99,
     description: 'FIDE-certified tournament clock with 39 timing modes and millisecond precision.',
     image: 'assets/placeholder.svg',
+    tag: 'FIDE Certified',
   },
   {
     id: 2,
@@ -35,6 +36,7 @@ const PRODUCTS = [
     price: 129.0,
     description: 'Hand-finished wooden pieces with anti-slip felt base, tournament size.',
     image: 'assets/placeholder.svg',
+    tag: 'Best Seller',
   },
   {
     id: 4,
@@ -74,6 +76,7 @@ function cardHtml(p) {
   return `
     <article class="product-card">
       <a class="product-img" href="#" aria-label="View details (sandbox mock)">
+        ${p.tag ? `<span class="product-flag">${escapeHtml(p.tag)}</span>` : ''}
         ${p.image
           ? `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" loading="lazy" />`
           : (CAT_ICON[p.category] || '♟')}
