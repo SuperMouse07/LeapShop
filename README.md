@@ -1,7 +1,7 @@
 # LeapChess · 全栈官网（前端 + 后端 + 数据库）
 
 参考 LeapChess（theleapchess.com）官网设计风格重构的国际象棋主题全栈 Web 应用。
-前端、后端、数据库三层架构，包含用户认证、角色权限与商品 CRUD 完整闭环。
+前端、后端、数据库三层架构；前台为无登录的编辑画廊式官网，后台为隐藏入口的内容管理面板（轮播图 / 商品主图与详情图 / 卖点文案），商品 CRUD 完整闭环。
 
 ## 架构总览
 
@@ -14,18 +14,18 @@
 └─────────────┘                └──────────────────┘          └───────────────┘
 ```
 
-- **前端** `frontend/`：原生 HTML/CSS/JS（ES Module），国际象棋深色棋盘主题
-- **后端** `backend/`：Node.js + Express，JWT 认证，角色权限中间件
+- **前端** `frontend/`：原生 HTML/CSS/JS，方案F八页结构（白底金黑编辑画廊），前台无登录/注册入口
+- **后端** `backend/`：Node.js + Express，JWT 认证（仅后台使用），角色权限中间件
 - **数据库**：检测到 `DATABASE_URL`/`PGHOST` 时使用 PostgreSQL；否则自动回退本地 SQLite（sql.js，零安装）
 
-## 演示账户
+## 管理员账户
 
 | 角色 | 用户名 | 密码 | 权限 |
 |------|--------|------|------|
-| 超级管理员 | `P001` | `123456` | 浏览全部 + 商品上传/编辑/删除 |
-| 客户 | `C001` | `123456` | 仅浏览基础内容 |
+| 超级管理员 | `P001` | `123456` | 后台轮播图/商品/存储统计全部管理 |
 
-首次启动自动建表并写入种子数据（幂等）。
+前台无任何登录入口；后台入口 `/admin.html` 不在站点任何页面展示链接，需直接访问并内置登录。
+首次启动自动建表并写入种子数据（幂等；生产 PG 已有数据时种子跳过，由后台人工管理）。
 
 ## 本地运行
 
@@ -39,10 +39,12 @@ npm start          # 启动后访问 http://localhost:3000
 
 | 页面 | 路径 |
 |------|------|
-| 官网首页 | `/` |
-| 登录 | `/login.html` |
-| 商品详情 | `/product.html?id=<id>` |
-| 管理后台 | `/admin.html` |
+| 官网首页（Hero 轮播 / Featured） | `/` |
+| 全部商品 | `/products.html` |
+| 分类页 | `/chess-clock.html` `/chess-board.html` `/stopwatch.html` `/lifestyle.html` |
+| 商品详情（主图横滑 + 详情图） | `/product.html?id=<id>` |
+| 品牌历程 | `/journey.html` |
+| 管理后台（隐藏入口，内置登录） | `/admin.html` |
 
 ### API 冒烟测试
 
@@ -56,20 +58,24 @@ node backend\test-crud.js                                       # 中文数据 C
 
 | 方法 | 路径 | 权限 | 说明 |
 |------|------|------|------|
-| POST | `/api/auth/login` | 公开 | 登录，返回 JWT |
+| POST | `/api/auth/login` | 公开 | 登录，返回 JWT（仅后台使用） |
 | GET | `/api/auth/me` | 登录 | 校验 Token / 获取身份 |
-| GET | `/api/products` | 公开 | 商品列表（`?category=` 过滤） |
-| GET | `/api/products/:id` | 公开 | 商品详情 |
+| GET | `/api/products` | 公开 | 商品列表（`?category=` 过滤，按 id 升序） |
+| GET | `/api/products/:id` | 公开 | 商品详情（含 `images` 主图集 / `details` 详情图集 / `info` 卖点） |
 | POST | `/api/products` | 管理员 | 新增商品 |
 | PUT | `/api/products/:id` | 管理员 | 更新商品 |
 | DELETE | `/api/products/:id` | 管理员 | 删除商品 |
+| GET | `/api/slides` | 公开 | 首页轮播图（按 sort 升序，仅启用项）；管理员 `?all=1` 返回全部 |
+| POST | `/api/slides` | 管理员 | 新增轮播图（image 支持 dataURL 自动落盘） |
+| PUT | `/api/slides/:id` | 管理员 | 更新轮播图（alt/sort/enabled/image） |
+| DELETE | `/api/slides/:id` | 管理员 | 删除轮播图（无引用图片自动清理） |
 | GET | `/api/stats/storage` | 管理员 | 存储统计（数据库总占用 / 商品数据占用 / 商品数 / 图片文件数与磁盘占用 / 数据库开销占比 / 磁盘容量与剩余） |
 | GET | `/api/products/:id/storage` | 管理员 | 单商品存储明细（图片文件数 / 磁盘字节 / JSON 字节 / 合计） |
 | GET | `/api/health` | 公开 | 健康检查（含数据库类型） |
 
-写操作需要请求头 `Authorization: Bearer <token>`；客户角色调用写接口返回 `403`。
-商品图片落盘存储于图片目录（生产为 Zeabur Volume 挂载点，由 `UPLOAD_DIR` 指定；本地默认 `backend/data/uploads`），数据库仅保存 `/uploads/...` URL 引用；文件以内容哈希命名，自动去重（每件商品最多 10 张，至少 1 张主图；前端单张大小上限 5MB，上传后随保存请求一并落盘）。
-商品支持颜色/款式变体（`variants`），每个变体可携带独立图集；详情页（`/product.html?id=<id>`）左侧轮播展示图片、右侧展示名称/价格/描述与变体选择。
+写操作需要请求头 `Authorization: Bearer <token>`；非管理员调用写接口返回 `403`。
+所有内容图（轮播图 / 商品主图 / 详情图）落盘存储于图片目录（生产为 Zeabur Volume 挂载点，由 `UPLOAD_DIR` 指定；本地默认 `backend/data/uploads`），数据库仅保存 `/uploads/...` URL 引用；文件以内容哈希命名，自动去重（每组图集最多 10 张，商品至少 1 张主图；后台单张大小上限 8MB）。删除商品/轮播/换图时自动清理无引用的图片文件。
+商品另支持 `variants` 颜色/款式变体字段（API 兼容保留，新后台界面不再展示与编辑）。
 
 ## Zeabur 部署（针对 Zeabur 平台特性适配）
 
@@ -93,7 +99,7 @@ node backend\test-crud.js                                       # 中文数据 C
 5. 建议添加环境变量 `JWT_SECRET`（随机字符串，避免使用代码内置默认值）
 6. **Networking → Generate Domain** 生成 `.zeabur.app` 域名，或绑定自定义域名（自动 HTTPS）
 
-应用启动时自动：建表 → 写入 P001/C001 与占位商品 → 监听 `PORT`。每次 git push 自动重新部署，PostgreSQL 数据不受影响。
+应用启动时自动：建表 → 写入 P001 与方案F种子数据（16 商品 + 3 轮播图，仅表为空时）→ 监听 `PORT`。每次 git push 自动重新部署，PostgreSQL 数据不受影响。
 
 ### 方案 B：前后端分离双服务
 
@@ -103,8 +109,8 @@ node backend\test-crud.js                                       # 中文数据 C
 
 ### 技术验证清单
 
-- [x] 前端调用后端 REST API 渲染动态商品（前后端数据交互）
-- [x] 登录认证（bcrypt 哈希 + JWT，错误密码返回 401）
+- [x] 前端调用后端 REST API 渲染动态商品与轮播图（前后端数据交互）
+- [x] 登录认证（bcrypt 哈希 + JWT，错误密码返回 401；仅隐藏后台使用，前台无登录入口）
 - [x] 角色权限（客户写操作 403，未登录 401，管理员正常 CRUD）
 - [x] 数据持久化（本地 SQLite / Zeabur PostgreSQL，重启不丢数据）
 - [x] 图片落盘存储（Volume + 内容哈希去重，跨部署持久化）
@@ -117,20 +123,24 @@ node backend\test-crud.js                                       # 中文数据 C
 ├── Dockerfile              # Zeabur 单服务镜像（后端 + 前端静态托管）
 ├── backend/
 │   ├── server.js           # Express 入口：路由 + 权限中间件 + 静态托管
-│   ├── db.js               # 数据库抽象层（PostgreSQL / sql.js 双驱动）
-│   ├── seed.js             # 幂等种子数据（账户 + 占位商品）
+│   ├── db.js               # 数据库抽象层（PostgreSQL / sql.js 双驱动，含 slides 表）
+│   ├── seed.js             # 幂等种子数据（P001 + 方案F 16 商品 + 3 轮播图导入）
 │   ├── test-api.ps1        # API 冒烟测试脚本
 │   └── test-crud.js        # 中文 CRUD 测试脚本
-└── frontend/
-    ├── index.html          # 官网首页（Hero / 品牌 / 动态商品 / 历程）
-    ├── login.html          # 登录页
-    ├── product.html        # 商品详情页（左轮播图 + 右信息/变体选择）
-    ├── admin.html          # 管理后台（多图上传 / 变体管理 / 编辑 / 删除）
-    ├── css/style.css       # 国际象棋主题样式
-    └── js/
-        ├── api.js          # 共享 API 客户端（Token 管理、请求封装）
-        ├── main.js         # 首页逻辑（动态商品加载、过滤）
-        ├── auth.js         # 登录逻辑
-        ├── product.js      # 详情页逻辑（轮播、颜色/款式切换）
-        └── admin.js        # 后台逻辑（权限门 + CRUD + 多图/变体上传）
+├── frontend/
+│   ├── index.html          # 首页（API 轮播 / Featured / 品牌故事）
+│   ├── products.html       # 全部商品（瀑布流）
+│   ├── chess-clock.html 等 # 4 个分类页
+│   ├── product.html        # 商品详情（主图横滑 + 详情图 + 卖点）
+│   ├── journey.html        # 品牌历程
+│   ├── admin.html          # 管理后台（隐藏入口：内置登录 + 轮播/商品/存储统计）
+│   ├── css/style.css       # 方案F 白底金黑样式 + 后台区块
+│   └── js/
+│       ├── store.js        # 前台 API 层（同源探测 + 商品/轮播取数）
+│       ├── data.js         # 编辑性常量（分类元数据 / 品牌文案）
+│       ├── api.js          # 后台 API 客户端（Token 管理、请求封装）
+│       ├── site.js         # 全站导航/购物车/页脚
+│       ├── home.js 等      # 各页面逻辑
+│       └── admin.js        # 后台逻辑（登录守卫 + 轮播管理 + 商品 CRUD）
+└── frontend/sandbox/       # 设计方案存档（prototype-a/e/f，不参与运行）
 ```

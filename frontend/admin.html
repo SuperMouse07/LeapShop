@@ -3,31 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Product Management · LeapChess Admin</title>
+  <title>Admin · LeapChess</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body class="admin-body">
 
-  <!-- Nav -->
-  <nav class="nav">
-    <a class="brand" href="index.html">
-      <span class="brand-icon">♞</span>
-      <span class="brand-name">LeapChess <i class="admin-badge">Admin</i></span>
-    </a>
-    <div class="nav-links">
-      <a href="index.html">← Back to Site</a>
-      <span id="navUserSlot"></span>
+  <!-- Nav（隐藏入口：站点任何页面不链接到此页） -->
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="nav-logo" href="index.html" aria-label="LEAP Home">
+        <img src="assets/logo.svg" alt="LEAP LOGO" />
+      </a>
+      <nav class="nav-links" aria-label="Admin navigation">
+        <span class="admin-tag">Admin Panel</span>
+      </nav>
+      <span class="admin-user-slot" id="navUserSlot"></span>
     </div>
-  </nav>
+  </header>
 
-  <!-- Access denied (shown to non-admins) -->
+  <!-- 内置登录（前台已移除 sign-in，登录仅存在于本页） -->
+  <section class="admin-auth hidden" id="loginPanel">
+    <form class="auth-card" id="loginForm">
+      <div class="auth-icon">♚</div>
+      <h2>Admin Sign In</h2>
+      <p class="auth-sub">Restricted area — super admin only.</p>
+      <label>Username
+        <input type="text" id="loginUser" autocomplete="username" required />
+      </label>
+      <label>Password
+        <input type="password" id="loginPass" autocomplete="current-password" required />
+      </label>
+      <p class="form-msg" id="loginMsg"></p>
+      <button class="btn" type="submit"><span>Sign In</span></button>
+    </form>
+  </section>
+
+  <!-- Access denied（非管理员账户） -->
   <section class="admin-denied hidden" id="deniedPanel">
     <div class="denied-card">
       <div class="denied-icon">♚</div>
       <h2>Access Denied</h2>
-      <p id="deniedMsg">Product upload &amp; management is restricted to <b>super admins</b>. Please sign in with an admin account (P001).</p>
-      <a class="btn btn-primary" href="login.html">Go to Sign In</a>
+      <p id="deniedMsg">Content management is restricted to super admins.</p>
+      <button class="btn" id="switchAccountBtn" type="button"><span>Switch Account</span></button>
     </div>
   </section>
 
@@ -74,42 +92,69 @@
       </div>
     </div>
 
+    <!-- 首页轮播图管理 -->
+    <section class="panel admin-slides">
+      <div class="panel-head">
+        <h2>♞ Home Carousel</h2>
+        <button class="btn btn-small btn-ghost" type="button" id="slidesRefreshBtn">Refresh ⟳</button>
+      </div>
+      <div class="slide-rows" id="slideRows"><p class="loading">Loading…</p></div>
+      <form class="slide-add" id="slideAddForm">
+        <input type="file" id="slideFile" accept="image/*" hidden />
+        <button class="btn btn-small btn-ghost" type="button" id="slidePickBtn">Choose Image…</button>
+        <img class="slide-preview hidden" id="slidePreview" alt="Slide preview" />
+        <input type="text" id="slideAlt" placeholder="Alt text (optional)" />
+        <button class="btn btn-small" type="submit" id="slideAddBtn" disabled>Add Slide</button>
+      </form>
+    </section>
+
     <div class="admin-grid">
 
       <!-- Left: create / edit form -->
       <form class="panel" id="productForm">
-        <h2 id="formTitle">♟ Upload New Product</h2>
+        <h2 id="formTitle">♟ New Product</h2>
         <input type="hidden" id="editId" />
         <label>Product Name *
-          <input type="text" id="pName" placeholder="e.g. LEAP PQ9999 Digital Chess Timer" required />
+          <input type="text" id="pName" placeholder="e.g. Tournament Pro Chess Clock" required />
         </label>
         <div class="form-row">
           <label>Category
             <select id="pCategory">
-              <option value="chess-timer">Chess Timer</option>
-              <option value="chess-set">Chess Set</option>
-              <option value="apparel">Apparel &amp; Gear</option>
+              <option value="chess-clock">Chess Clock</option>
+              <option value="chess-board">Chess Board</option>
+              <option value="stopwatch">Stopwatch</option>
+              <option value="lifestyle">Chess Lifestyle</option>
+              <option value="__custom">Custom…</option>
             </select>
           </label>
           <label>Price ($)
             <input type="number" id="pPrice" min="0" step="0.01" placeholder="0.00" />
           </label>
+          <label>Stock
+            <input type="number" id="pStock" min="0" step="1" placeholder="0" />
+          </label>
         </div>
+        <label class="hidden" id="customCatRow">Custom Category Id
+          <input type="text" id="pCustomCat" placeholder="e.g. chess-set" />
+        </label>
         <label>Description
           <textarea id="pDesc" rows="3" placeholder="One line about what makes it great…"></textarea>
         </label>
-        <label>Images — up to 10, at least 1 main image required (first = cover, files are stored on the server disk)
-          <input type="file" id="pImages" accept="image/*" multiple />
+        <label>Selling Points (Product Information) — one bullet per line
+          <textarea id="pInfo" rows="3" placeholder="First selling point…"></textarea>
+        </label>
+        <label>Main Images (gallery) — up to 10, first = cover, stored on the server
+          <input type="file" id="pImages" accept="image/*" multiple hidden />
         </label>
         <div class="img-gallery" id="imgGallery"></div>
-        <label>Color &amp; Style Variants — optional; each variant can carry its own gallery
-          <button class="btn btn-small btn-ghost" type="button" id="addVariantBtn">+ Add Variant</button>
+        <label>Detail Images — shown below the main gallery (optional)
+          <input type="file" id="pDetails" accept="image/*" multiple hidden />
         </label>
-        <div class="variant-list" id="variantList"></div>
+        <div class="img-gallery" id="detailGallery"></div>
         <p class="form-msg" id="formMsg"></p>
         <div class="form-actions">
-          <button class="btn btn-primary" type="submit" id="submitBtn">Save Product</button>
-          <button class="btn btn-ghost" type="button" id="cancelEdit">Cancel Edit</button>
+          <button class="btn" type="submit" id="submitBtn">Save Product</button>
+          <button class="btn btn-ghost" type="button" id="cancelEdit">Cancel</button>
         </div>
       </form>
 
@@ -117,15 +162,20 @@
       <div class="panel">
         <div class="panel-head">
           <h2>♜ Products <span class="count" id="productCount"></span></h2>
-          <button class="btn btn-small btn-ghost" id="refreshBtn">Refresh ⟳</button>
+          <button class="btn btn-small btn-ghost" type="button" id="refreshBtn">Refresh ⟳</button>
         </div>
         <div class="table-wrap">
           <table class="admin-table">
             <thead>
-              <tr><th>ID</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Variants</th><th class="th-num">Images</th><th class="th-num">Img Size</th><th>Actions</th></tr>
+              <tr>
+                <th>ID</th><th>Cover</th><th>Name</th><th>Category</th>
+                <th class="th-num">Price</th><th class="th-num">Stock</th>
+                <th class="th-num">Main</th><th class="th-num">Detail</th>
+                <th class="th-num">Size</th><th>Actions</th>
+              </tr>
             </thead>
             <tbody id="productRows">
-              <tr><td colspan="9" class="loading">Loading…</td></tr>
+              <tr><td colspan="10" class="loading">Loading…</td></tr>
             </tbody>
           </table>
         </div>

@@ -1,40 +1,87 @@
 /**
- * Admin dashboard: access guard + product CRUD + multi-image upload (max 10) + color/style variants
+ * Admin dashboard（隐藏入口 /admin.html）
+ * 内置登录守卫 + 轮播图管理 + 商品 CRUD（主图/详情图双图集 + 卖点 info）+ 存储统计
  */
-import { detectApiBase, api, getToken, renderNavUser, escapeHtml, productImage } from './api.js';
+import { detectApiBase, api, getToken, getUser, saveSession, clearSession, renderNavUser, escapeHtml, productImage } from './api.js';
 
-const CAT_LABEL = { 'chess-timer': 'Chess Timer', 'chess-set': 'Chess Set', apparel: 'Apparel & Gear' };
+const CAT_LABEL = {
+  'chess-clock': 'Chess Clock',
+  'chess-board': 'Chess Board',
+  stopwatch: 'Stopwatch',
+  lifestyle: 'Chess Lifestyle',
+};
+const KNOWN_CATS = Object.keys(CAT_LABEL);
 const MAX_IMAGES = 10;
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 单张图片大小上限 5MB
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024; // 单张图片大小上限 8MB（后端 express.json 限 24mb）
 const $ = (id) => document.getElementById(id);
 
-let pendingImages = [];   // product gallery (base64 data URLs), first = main image
-let pendingVariants = []; // [{ color, style, images[] }]
+let pendingImages = [];  // 主图图集（URL 或 dataURL），第一张为封面
+let pendingDetails = []; // 详情图图集
 
-/* ---------- Access guard ---------- */
+/* ---------- Access guard（内置登录） ---------- */
+function showOnly(panelId) {
+  ['loginPanel', 'deniedPanel', 'adminPanel'].forEach((id) => {
+    $(id).classList.toggle('hidden', id !== panelId);
+  });
+}
+
 async function guard() {
   await detectApiBase();
   renderNavUser();
   if (!getToken()) {
-    $('deniedMsg').innerHTML = 'Please <b>sign in</b> first. Product upload &amp; management is restricted to super admins.';
-    $('deniedPanel').classList.remove('hidden');
+    showOnly('loginPanel');
     return false;
   }
   try {
     const { user } = await api('/auth/me');
     if (user.role !== 'admin') {
-      $('deniedMsg').innerHTML = `Account <b>${escapeHtml(user.username)}</b> has a customer role and can only browse basic content. Product upload &amp; management is restricted to <b>super admins (P001)</b>.`;
-      $('deniedPanel').classList.remove('hidden');
+      $('deniedMsg').innerHTML = `Account <b>${escapeHtml(user.username)}</b> does not have admin access.`;
+      showOnly('deniedPanel');
       return false;
     }
-    $('adminPanel').classList.remove('hidden');
+    showOnly('adminPanel');
     return true;
   } catch {
-    $('deniedMsg').innerHTML = 'Your session has expired. Please sign in again.';
-    $('deniedPanel').classList.remove('hidden');
+    clearSession();
+    renderNavUser();
+    $('loginMsg').textContent = 'Session expired — please sign in again.';
+    showOnly('loginPanel');
     return false;
   }
 }
+
+$('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = $('loginMsg');
+  msg.textContent = 'Signing in…';
+  msg.className = 'form-msg';
+  try {
+    const { token, user } = await api('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username: $('loginUser').value.trim(), password: $('loginPass').value }),
+    });
+    saveSession(token, user);
+    if (user.role !== 'admin') {
+      clearSession();
+      msg.textContent = 'This account does not have admin access.';
+      msg.className = 'form-msg err';
+      return;
+    }
+    msg.textContent = '';
+    renderNavUser();
+    showOnly('adminPanel');
+    boot();
+  } catch (err) {
+    msg.textContent = err.message || 'Sign in failed';
+    msg.className = 'form-msg err';
+  }
+});
+
+$('switchAccountBtn').addEventListener('click', () => {
+  clearSession();
+  renderNavUser();
+  showOnly('loginPanel');
+});
 
 /* ---------- Storage stats ---------- */
 function formatBytes(bytes) {
@@ -70,6 +117,133 @@ async function loadStats() {
   }
 }
 
+/* ---------- 轮播图管理 ---------- */
+let slides = [];
+
+async function loadSlides() {
+  const box = $('slideRows');
+  try {
+    ({ slides } = await api('/slides?all=1'));
+  } catch (err) {
+    box.innerHTML = `<p class="loading">Failed to load: ${escapeHtml(err.message)}</p>`;
+    return;
+  }
+  if (!slides.length) {
+    box.innerHTML = '<p class="loading">No slides yet — add the first hero image below.</p>';
+    return;
+  }
+  box.innerHTML = slides
+    .map(
+      (s, i) => `
+      <div class="slide-row ${s.enabled ? '' : 'disabled'}" data-id="${s.id}">
+        <img class="slide-thumb" src="${escapeHtml(s.image)}" alt="" />
+        <input type="text" class="slide-alt" value="${escapeHtml(s.alt || '')}" placeholder="Alt text…" />
+        <span class="slide-idx">#${i + 1}</span>
+        <div class="slide-ops">
+          <button type="button" data-act="up" title="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button type="button" data-act="down" title="Move down" ${i === slides.length - 1 ? 'disabled' : ''}>↓</button>
+          <button type="button" data-act="toggle">${s.enabled ? 'Disable' : 'Enable'}</button>
+          <button type="button" data-act="del" class="danger">Delete</button>
+        </div>
+      </div>`
+    )
+    .join('');
+}
+
+/** 交换两张轮播的 sort 值后逐条 PUT */
+async function swapSlides(i, j) {
+  const a = slides[i];
+  const b = slides[j];
+  const sortA = a.sort ?? i + 1;
+  const sortB = b.sort ?? j + 1;
+  await api(`/slides/${a.id}`, { method: 'PUT', body: JSON.stringify({ sort: sortB }) });
+  await api(`/slides/${b.id}`, { method: 'PUT', body: JSON.stringify({ sort: sortA }) });
+  await loadSlides();
+}
+
+$('slideRows').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const row = btn.closest('.slide-row');
+  const idx = slides.findIndex((s) => s.id === Number(row.dataset.id));
+  const s = slides[idx];
+  if (!s) return;
+  try {
+    if (btn.dataset.act === 'up') await swapSlides(idx, idx - 1);
+    else if (btn.dataset.act === 'down') await swapSlides(idx, idx + 1);
+    else if (btn.dataset.act === 'toggle') {
+      await api(`/slides/${s.id}`, { method: 'PUT', body: JSON.stringify({ enabled: s.enabled ? 0 : 1 }) });
+      await loadSlides();
+    } else if (btn.dataset.act === 'del') {
+      if (!confirm('Delete this slide?')) return;
+      await api(`/slides/${s.id}`, { method: 'DELETE' });
+      await loadSlides();
+      loadStats();
+    }
+  } catch (err) {
+    alert(`Slide update failed: ${err.message}`);
+  }
+});
+
+/* alt 失焦即保存 */
+$('slideRows').addEventListener('change', async (e) => {
+  if (!e.target.classList.contains('slide-alt')) return;
+  const row = e.target.closest('.slide-row');
+  const s = slides.find((x) => x.id === Number(row.dataset.id));
+  if (!s || e.target.value === (s.alt || '')) return;
+  try {
+    await api(`/slides/${s.id}`, { method: 'PUT', body: JSON.stringify({ alt: e.target.value }) });
+    s.alt = e.target.value;
+  } catch (err) {
+    alert(`Slide update failed: ${err.message}`);
+  }
+});
+
+/* 新增轮播：选图 → 预览 → 提交 */
+let pendingSlideDataUrl = '';
+
+$('slidePickBtn').addEventListener('click', () => $('slideFile').click());
+$('slideFile').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (file.size > MAX_IMAGE_SIZE) {
+    alert(`"${file.name}" is too large (max 8MB).`);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    pendingSlideDataUrl = reader.result;
+    $('slidePreview').src = pendingSlideDataUrl;
+    $('slidePreview').classList.remove('hidden');
+    $('slideAddBtn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+});
+
+$('slideAddForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!pendingSlideDataUrl) return;
+  const btn = $('slideAddBtn');
+  btn.disabled = true;
+  try {
+    await api('/slides', {
+      method: 'POST',
+      body: JSON.stringify({ image: pendingSlideDataUrl, alt: $('slideAlt').value.trim() }),
+    });
+    pendingSlideDataUrl = '';
+    $('slideAlt').value = '';
+    $('slidePreview').classList.add('hidden');
+    await loadSlides();
+    loadStats();
+  } catch (err) {
+    alert(`Add slide failed: ${err.message}`);
+    btn.disabled = false;
+  }
+});
+
+$('slidesRefreshBtn').addEventListener('click', loadSlides);
+
 /* ---------- Product list ---------- */
 async function loadList() {
   const tbody = $('productRows');
@@ -77,40 +251,38 @@ async function loadList() {
     const { products } = await api('/products');
     $('productCount').textContent = `${products.length} item(s)`;
     if (!products.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="loading">No products yet — upload your first one on the left.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="loading">No products yet — add your first one on the left.</td></tr>';
       return;
     }
-    tbody.innerHTML = products.map((p) => {
-      const img = productImage(p);
-      const vCount = (p.variants || []).length;
-      return `
-      <tr>
-        <td>${p.id}</td>
-        <td>${img
-          ? `<img class="thumb" src="${escapeHtml(img)}" alt="" />`
-          : '<span class="thumb-ph">♟</span>'}
-          <span class="thumb-count">${(p.images || []).length} img</span></td>
-        <td>${escapeHtml(p.name)}</td>
-        <td>${CAT_LABEL[p.category] || escapeHtml(p.category)}</td>
-        <td>$ ${Number(p.price).toFixed(2)}</td>
-        <td>${vCount ? `${vCount} variant(s)` : '—'}</td>
-        <td class="td-num" id="imgCount-${p.id}">…</td>
-        <td class="td-num tip-cell" id="imgSize-${p.id}" data-tip="">…</td>
-        <td class="row-actions">
-          <button class="btn btn-ghost" data-act="edit" data-id="${p.id}">Edit</button>
-          <button class="btn btn-danger" data-act="del" data-id="${p.id}">Delete</button>
-        </td>
-      </tr>
-    `;
-    }).join('');
+    tbody.innerHTML = products
+      .map((p) => {
+        const img = productImage(p);
+        return `
+        <tr>
+          <td>${p.id}</td>
+          <td>${img ? `<img class="thumb" src="${escapeHtml(img)}" alt="" />` : '<span class="thumb-ph">♟</span>'}</td>
+          <td>${escapeHtml(p.name)}</td>
+          <td>${CAT_LABEL[p.category] || escapeHtml(p.category)}</td>
+          <td class="td-num">$ ${Number(p.price).toFixed(2)}</td>
+          <td class="td-num">${Number(p.stock) || 0}</td>
+          <td class="td-num">${(p.images || []).length}</td>
+          <td class="td-num">${(p.details || []).length}</td>
+          <td class="td-num tip-cell" id="rowSize-${p.id}" data-tip="">…</td>
+          <td class="row-actions">
+            <button class="btn btn-small btn-ghost" data-act="edit" data-id="${p.id}">Edit</button>
+            <button class="btn btn-small btn-danger" data-act="del" data-id="${p.id}">Delete</button>
+          </td>
+        </tr>`;
+      })
+      .join('');
     tbody.dataset.products = JSON.stringify(products);
     loadRowStorage(products);
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="9" class="loading">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="loading">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
-/** 并行拉取每行商品的存储明细，回填单元格与 Tooltip（失败保持占位符） */
+/** 并行拉取每行商品的存储明细，回填单元格与 Tooltip */
 async function loadRowStorage(products) {
   await Promise.all(
     products.map(async (p) => {
@@ -120,12 +292,10 @@ async function loadRowStorage(products) {
       } catch {
         return;
       }
-      const cEl = $(`imgCount-${p.id}`);
-      const sEl = $(`imgSize-${p.id}`);
-      if (!d || !cEl || !sEl) return;
-      cEl.textContent = d.imageFileCount;
-      sEl.textContent = formatBytes(d.imageFileBytes);
-      sEl.dataset.tip = `Images: ${d.imageFileCount} files | ${formatBytes(d.imageFileBytes)} on disk | JSON: ${formatBytes(d.jsonBytes)} | Total: ${formatBytes(d.totalBytes)}`;
+      const el = $(`rowSize-${p.id}`);
+      if (!d || !el) return;
+      el.textContent = formatBytes(d.totalBytes);
+      el.dataset.tip = `Images: ${d.imageFileCount} files | ${formatBytes(d.imageFileBytes)} on disk | JSON: ${formatBytes(d.jsonBytes)} | Total: ${formatBytes(d.totalBytes)}`;
     })
   );
 }
@@ -137,14 +307,19 @@ function setMsg(text, ok = true) {
   msg.className = `form-msg ${ok ? 'ok' : 'err'}`;
 }
 
+function syncCustomCat() {
+  $('customCatRow').classList.toggle('hidden', $('pCategory').value !== '__custom');
+}
+$('pCategory').addEventListener('change', syncCustomCat);
+
 function resetForm() {
   $('productForm').reset();
   $('editId').value = '';
   pendingImages = [];
-  pendingVariants = [];
-  renderGallery();
-  renderVariants();
-  $('formTitle').textContent = '♟ Upload New Product';
+  pendingDetails = [];
+  renderGalleries();
+  syncCustomCat();
+  $('formTitle').textContent = '♟ New Product';
   $('submitBtn').textContent = 'Save Product';
   setMsg('');
 }
@@ -152,171 +327,95 @@ function resetForm() {
 function fillForm(p) {
   $('editId').value = p.id;
   $('pName').value = p.name;
-  $('pCategory').value = p.category;
+  if (KNOWN_CATS.includes(p.category)) {
+    $('pCategory').value = p.category;
+    $('pCustomCat').value = '';
+  } else {
+    $('pCategory').value = '__custom';
+    $('pCustomCat').value = p.category;
+  }
+  syncCustomCat();
   $('pPrice').value = p.price;
+  $('pStock').value = p.stock ?? '';
   $('pDesc').value = p.description || '';
+  $('pInfo').value = (p.info || []).join('\n');
   pendingImages = [...(p.images || [])];
-  pendingVariants = (p.variants || []).map((v) => ({
-    color: v.color || '',
-    style: v.style || '',
-    images: [...(v.images || [])],
-  }));
-  renderGallery();
-  renderVariants();
+  pendingDetails = [...(p.details || [])];
+  renderGalleries();
   $('formTitle').textContent = `♟ Edit Product #${p.id}`;
   $('submitBtn').textContent = 'Save Changes';
   setMsg('');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/* ---------- Multi-image gallery ---------- */
-function renderGallery() {
-  const box = $('imgGallery');
-  const items = pendingImages
+/* ---------- Image galleries（主图 + 详情图） ---------- */
+function galleryHtml(list, galleryId, addId, label) {
+  const items = list
     .map(
       (src, i) => `
       <div class="gallery-item">
-        ${i === 0 ? '<span class="main-flag">Main</span>' : ''}
-        <img src="${escapeHtml(src)}" alt="Image ${i + 1}" />
+        ${i === 0 && galleryId === 'imgGallery' ? '<span class="main-flag">Cover</span>' : ''}
+        <img src="${escapeHtml(src)}" alt="${label} ${i + 1}" />
         <button class="rm-img" type="button" data-i="${i}" title="Remove">×</button>
       </div>`
     )
     .join('');
-  const addTile =
-    pendingImages.length < MAX_IMAGES
-      ? `<div class="gallery-add" id="galleryAdd" title="Add image">＋</div>`
-      : '';
-  box.innerHTML =
-    items +
-    addTile +
-    `<span class="gallery-hint">${pendingImages.length}/${MAX_IMAGES} images${pendingImages.length ? '' : ' — at least 1 main image required'}</span>`;
+  const addTile = list.length < MAX_IMAGES ? `<div class="gallery-add" id="${addId}" title="Add image">＋</div>` : '';
+  return `${items}${addTile}<span class="gallery-hint">${list.length}/${MAX_IMAGES}</span>`;
 }
 
-$('imgGallery').addEventListener('click', (e) => {
-  if (e.target.closest('#galleryAdd')) {
-    $('pImages').click();
-    return;
-  }
-  const rm = e.target.closest('.rm-img');
-  if (rm) {
-    pendingImages.splice(Number(rm.dataset.i), 1);
-    renderGallery();
-  }
-});
-
-/* Image files → base64 (5MB each, 10 in total) */
-$('pImages').addEventListener('change', async (e) => {
-  const files = Array.from(e.target.files || []);
-  e.target.value = '';
-  if (!files.length) return;
-  for (const file of files) {
-    if (pendingImages.length >= MAX_IMAGES) {
-      setMsg(`Max ${MAX_IMAGES} images per product — extra files were skipped.`, false);
-      break;
-    }
-    if (file.size > MAX_IMAGE_SIZE) {
-      setMsg(`"${file.name}" is too large (max 5MB) and was skipped.`, false);
-      continue;
-    }
-    const dataUrl = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.readAsDataURL(file);
-    });
-    pendingImages.push(dataUrl);
-  }
-  renderGallery();
-  if (pendingImages.length) setMsg('Images ready — they will be saved to the database with the product.');
-});
-
-/* ---------- Color / style variants ---------- */
-function renderVariants() {
-  const list = $('variantList');
-  if (!pendingVariants.length) {
-    list.innerHTML = '<p class="variant-empty">No variants yet — the product will show its main gallery only.</p>';
-    return;
-  }
-  list.innerHTML = pendingVariants
-    .map(
-      (v, i) => `
-      <div class="variant-item" data-i="${i}">
-        <div class="variant-head">
-          <input type="text" class="v-color" placeholder="Color, e.g. Matte Black" value="${escapeHtml(v.color)}" />
-          <input type="text" class="v-style" placeholder="Style, e.g. Tournament Edition" value="${escapeHtml(v.style)}" />
-          <button class="btn btn-danger v-remove" type="button" title="Remove variant">×</button>
-        </div>
-        <div class="variant-imgs">
-          ${v.images
-            .map(
-              (src, k) =>
-                `<span class="v-thumb"><img src="${escapeHtml(src)}" alt="" /><button type="button" class="rm-vimg" data-k="${k}">×</button></span>`
-            )
-            .join('')}
-          ${v.images.length < MAX_IMAGES ? `<button class="v-add" type="button" title="Upload variant images">＋</button>` : ''}
-          <input type="file" class="v-file" accept="image/*" multiple hidden />
-        </div>
-      </div>`
-    )
-    .join('');
+function renderGalleries() {
+  $('imgGallery').innerHTML = galleryHtml(pendingImages, 'imgGallery', 'galleryAdd', 'Main image');
+  $('detailGallery').innerHTML = galleryHtml(pendingDetails, 'detailGallery', 'detailAdd', 'Detail image');
 }
 
-$('addVariantBtn').addEventListener('click', () => {
-  pendingVariants.push({ color: '', style: '', images: [] });
-  renderVariants();
-});
-
-$('variantList').addEventListener('click', async (e) => {
-  const item = e.target.closest('.variant-item');
-  if (!item) return;
-  const i = Number(item.dataset.i);
-
-  if (e.target.closest('.v-remove')) {
-    pendingVariants.splice(i, 1);
-    renderVariants();
-    return;
-  }
-
-  const rmImg = e.target.closest('.rm-vimg');
-  if (rmImg) {
-    pendingVariants[i].images.splice(Number(rmImg.dataset.k), 1);
-    renderVariants();
-    return;
-  }
-
-  if (e.target.closest('.v-add')) {
-    item.querySelector('.v-file').click();
-  }
-});
-
-$('variantList').addEventListener('change', (e) => {
-  const item = e.target.closest('.variant-item');
-  if (!item) return;
-  const i = Number(item.dataset.i);
-
-  if (e.target.classList.contains('v-color')) pendingVariants[i].color = e.target.value;
-  if (e.target.classList.contains('v-style')) pendingVariants[i].style = e.target.value;
-
-  if (e.target.classList.contains('v-file')) {
-    Array.from(e.target.files || []).forEach((file) => {
-      if (pendingVariants[i].images.length >= MAX_IMAGES) return;
-      if (file.size > MAX_IMAGE_SIZE) {
-        setMsg(`"${file.name}" is too large (max 5MB) and was skipped.`, false);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        pendingVariants[i].images.push(reader.result);
-        renderVariants();
-      };
-      reader.readAsDataURL(file);
-    });
+function bindGallery(boxId, fileInputId, addId, getList) {
+  $(boxId).addEventListener('click', async (e) => {
+    if (e.target.closest(`#${addId}`)) {
+      $(fileInputId).click();
+      return;
+    }
+    const rm = e.target.closest('.rm-img');
+    if (rm) {
+      getList().splice(Number(rm.dataset.i), 1);
+      renderGalleries();
+    }
+  });
+  $(fileInputId).addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
-  }
-});
+    const list = getList();
+    for (const file of files) {
+      if (list.length >= MAX_IMAGES) {
+        setMsg(`Max ${MAX_IMAGES} images per group — extra files were skipped.`, false);
+        break;
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        setMsg(`"${file.name}" is too large (max 8MB) and was skipped.`, false);
+        continue;
+      }
+      const dataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+      list.push(dataUrl);
+    }
+    renderGalleries();
+    if (list.length) setMsg('Images ready — they will be stored on the server when you save.');
+  });
+}
+bindGallery('imgGallery', 'pImages', 'galleryAdd', () => pendingImages);
+bindGallery('detailGallery', 'pDetails', 'detailAdd', () => pendingDetails);
 
 /* ---------- Submit ---------- */
 $('productForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const category = $('pCategory').value === '__custom' ? $('pCustomCat').value.trim() : $('pCategory').value;
+  if (!category) {
+    setMsg('Please enter a custom category id.', false);
+    return;
+  }
   if (!pendingImages.length) {
     setMsg('Please upload at least 1 main image.', false);
     return;
@@ -324,11 +423,14 @@ $('productForm').addEventListener('submit', async (e) => {
   const editId = $('editId').value;
   const body = {
     name: $('pName').value,
-    category: $('pCategory').value,
+    category,
     price: $('pPrice').value || 0,
+    stock: $('pStock').value || 0,
     description: $('pDesc').value,
+    info: $('pInfo').value.split('\n').map((s) => s.trim()).filter(Boolean),
     images: pendingImages,
-    variants: pendingVariants.filter((v) => v.color.trim() || v.style.trim() || v.images.length),
+    details: pendingDetails,
+    // variants 不在新界面展示，编辑时不提交以保留旧值
   };
   try {
     if (editId) {
@@ -371,12 +473,15 @@ $('productRows').addEventListener('click', async (e) => {
   }
 });
 
+/* ---------- Boot ---------- */
+function boot() {
+  renderGalleries();
+  loadStats();
+  loadSlides();
+  loadList();
+}
+
 (async function init() {
   const allowed = await guard();
-  if (allowed) {
-    renderGallery();
-    renderVariants();
-    loadList();
-    loadStats();
-  }
+  if (allowed) boot();
 })();
