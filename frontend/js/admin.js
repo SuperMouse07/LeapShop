@@ -102,20 +102,126 @@ async function loadStats() {
     const s = await api('/stats/storage');
     $('statDbType').textContent = s.dbType === 'postgresql' ? 'PostgreSQL' : 'SQLite';
     $('statTotal').textContent = formatBytes(s.totalBytes);
-    $('statProducts').textContent = formatBytes(s.productBytes);
+    const ratio = s.totalBytes > 0 ? (s.productBytes / s.totalBytes) * 100 : 0;
+    $('statRatio').textContent = `${ratio.toFixed(1)}%`;
+    $('statDiskTotal').textContent = s.volumeTotalBytes > 0 ? formatBytes(s.volumeTotalBytes) : '—';
+    $('statDiskFree').textContent = s.volumeFreeBytes > 0 ? formatBytes(s.volumeFreeBytes) : '—';
     $('statCount').textContent = `${s.productCount} item(s)`;
-    $('statImgCount').textContent = typeof s.imageFileCount === 'number' ? `${s.imageFileCount} file(s)` : '—';
-    $('statImgSize').textContent = typeof s.imageFileBytes === 'number' ? formatBytes(s.imageFileBytes) : '—';
-    $('statOverhead').textContent = typeof s.overheadRatio === 'number' ? `${s.overheadRatio.toFixed(1)}%` : '—';
-    $('statVolume').textContent = typeof s.volumeTotalBytes === 'number' && s.volumeTotalBytes > 0 ? formatBytes(s.volumeTotalBytes) : '—';
-    const pct = s.totalBytes > 0 ? Math.min(100, (s.productBytes / s.totalBytes) * 100) : 0;
-    $('statBar').style.width = `${pct}%`;
-    const freeTxt = typeof s.volumeFreeBytes === 'number' && s.volumeFreeBytes > 0 ? ` · Disk free: ${formatBytes(s.volumeFreeBytes)}` : '';
-    $('statBarLabel').textContent = `Product data takes ${pct.toFixed(1)}% of total storage${freeTxt}`;
+    $('statBar').style.width = `${Math.min(100, ratio)}%`;
+    $('statBarLabel').textContent =
+      `Product data takes ${ratio.toFixed(1)}% of total storage (${formatBytes(s.productBytes)})`;
   } catch {
     $('statBarLabel').textContent = 'Storage stats unavailable';
   }
 }
+
+/* ---------- 全站设置（settings 表） ---------- */
+let settingsChannel = null;
+try { settingsChannel = new BroadcastChannel('leap_settings'); } catch { /* 旧浏览器降级 */ }
+const notifySettingsChanged = () => {
+  if (settingsChannel) settingsChannel.postMessage({ type: 'settings' });
+};
+let pickedLogoData = ''; // 已选待上传的 LOGO dataURL
+
+function setSettingsMsg(text, ok = true) {
+  const el = $('settingsMsg');
+  el.textContent = text || '';
+  el.className = `form-msg${text && !ok ? ' err' : ''}`;
+}
+
+function setLogoPreview(url) {
+  $('setLogoPreview').src = url || 'assets/logo.svg';
+}
+
+async function loadSettings() {
+  try {
+    const { settings: s } = await api('/settings');
+    $('setSiteTitle').value = s.site_title || '';
+    $('setAnnouncement').value = s.announcement_html || '';
+    $('setContactEmail').value = s.contact_email || '';
+    $('setContactSocial').value = s.contact_social || '';
+    setLogoPreview(s.logo_url);
+    // 后台导航 LOGO 同步显示当前配置
+    const navLogo = document.querySelector('.nav-logo img');
+    if (navLogo) navLogo.src = s.logo_url || 'assets/logo.svg';
+  } catch (err) {
+    setSettingsMsg(`Load settings failed: ${err.message}`, false);
+  }
+}
+
+$('settingsRefreshBtn').addEventListener('click', loadSettings);
+
+$('setLogoPickBtn').addEventListener('click', () => $('setLogoFile').click());
+$('setLogoFile').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  if (f.size > MAX_IMAGE_SIZE) return setSettingsMsg('Image exceeds the 8MB limit.', false);
+  const rd = new FileReader();
+  rd.onload = () => {
+    pickedLogoData = String(rd.result || '');
+    $('setLogoPreview').src = pickedLogoData;
+    $('setLogoUploadBtn').disabled = false;
+    setSettingsMsg('');
+  };
+  rd.readAsDataURL(f);
+});
+
+$('setLogoUploadBtn').addEventListener('click', async () => {
+  if (!pickedLogoData) return;
+  const btn = $('setLogoUploadBtn');
+  btn.disabled = true;
+  try {
+    const { url } = await api('/settings/logo', {
+      method: 'POST',
+      body: JSON.stringify({ image: pickedLogoData }),
+    });
+    pickedLogoData = '';
+    setLogoPreview(url);
+    setSettingsMsg('Logo uploaded — applied site-wide.');
+    notifySettingsChanged();
+  } catch (err) {
+    setSettingsMsg(`Logo upload failed: ${err.message}`, false);
+    btn.disabled = false;
+  }
+});
+
+$('settingsForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('settingsSaveBtn');
+  btn.disabled = true;
+  const pairs = [
+    ['site_title', $('setSiteTitle').value.trim()],
+    ['announcement_html', $('setAnnouncement').value],
+    ['contact_email', $('setContactEmail').value.trim()],
+    ['contact_social', $('setContactSocial').value.trim()],
+  ];
+  try {
+    for (const [key, value] of pairs) {
+      await api('/settings', { method: 'PUT', body: JSON.stringify({ key, value }) });
+    }
+    setSettingsMsg('Settings saved — changes take effect immediately on the frontend.');
+    notifySettingsChanged();
+  } catch (err) {
+    setSettingsMsg(err.message || 'Save failed', false);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ---------- 隐蔽快捷入口：2 秒内连敲 5 次空格 → 前台首页 ---------- */
+const spaceStamps = [];
+document.addEventListener('keydown', (e) => {
+  if (e.key !== ' ' || e.repeat) return;
+  if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  const now = Date.now();
+  spaceStamps.push(now);
+  while (spaceStamps.length > 5) spaceStamps.shift();
+  if (spaceStamps.length === 5 && now - spaceStamps[0] <= 2000) {
+    spaceStamps.length = 0;
+    location.href = 'index.html';
+  }
+});
 
 /* ---------- 轮播图管理 ---------- */
 let slides = [];
@@ -478,6 +584,7 @@ function boot() {
   renderGalleries();
   loadStats();
   loadSlides();
+  loadSettings();
   loadList();
 }
 

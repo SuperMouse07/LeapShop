@@ -9,7 +9,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const { db, connect, initSchema } = require('./db');
+const { db, connect, initSchema, usePg } = require('./db');
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'data', 'uploads');
 const SEED_ASSETS_DIR = path.join(__dirname, '..', 'frontend', 'sandbox', 'prototype-f', 'assets');
@@ -145,6 +145,31 @@ async function seed() {
       await db.run('INSERT INTO slides (image, alt, sort, enabled) VALUES (?, ?, ?, 1)', [url, s.alt, sort]);
     }
     if (sort > 0) console.log(`[seed] 轮播图已写入: ${sort} 帧`);
+  }
+
+  const settingCount = await db.query('SELECT COUNT(*) AS c FROM settings');
+  if (Number(settingCount[0].c) === 0) {
+    const defaults = [
+      ['site_title', 'LEAP'],
+      ['logo_url', ''],
+      ['announcement_html', ''],
+      ['contact_email', 'hello@leapchess.example'],
+      ['contact_social', ''],
+    ];
+    for (const [key, value] of defaults) await upsertSetting(key, value);
+    console.log('[seed] 全站设置默认值已写入');
+  }
+}
+
+/** settings 表 upsert（双方言兼容：PG 不能用 db.run，其会自动追加 RETURNING id） */
+async function upsertSetting(key, value) {
+  if (usePg) {
+    await db.query(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+      [key, value]
+    );
+  } else {
+    await db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
   }
 }
 

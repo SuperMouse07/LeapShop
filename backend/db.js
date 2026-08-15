@@ -198,6 +198,13 @@ async function initSchema() {
       )`);
   }
 
+  // 全站设置表（key/value，双方言语法一致，幂等创建）
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    )`);
+
   // 平滑迁移：旧库补列（幂等）
   await ensureColumn('products', 'images', "TEXT DEFAULT '[]'");
   await ensureColumn('products', 'variants', "TEXT DEFAULT '[]'");

@@ -52,7 +52,7 @@
   <!-- Admin workspace -->
   <main class="admin-main hidden" id="adminPanel">
 
-    <!-- Storage stats -->
+    <!-- Server status monitor -->
     <div class="panel admin-stats">
       <div class="stat">
         <span>Database</span>
@@ -63,34 +63,57 @@
         <b id="statTotal">…</b>
       </div>
       <div class="stat">
-        <span>Product Data</span>
-        <b id="statProducts" class="gold">…</b>
+        <span>Product Data Ratio</span>
+        <b id="statRatio" class="gold">…</b>
+      </div>
+      <div class="stat">
+        <span>Disk Total (Volume)</span>
+        <b id="statDiskTotal">…</b>
+      </div>
+      <div class="stat">
+        <span>Disk Free (Volume)</span>
+        <b id="statDiskFree">…</b>
       </div>
       <div class="stat">
         <span>Products</span>
         <b id="statCount">…</b>
-      </div>
-      <div class="stat">
-        <span>Image Files Count</span>
-        <b id="statImgCount">…</b>
-      </div>
-      <div class="stat">
-        <span>Image Files Size</span>
-        <b id="statImgSize">…</b>
-      </div>
-      <div class="stat">
-        <span>Database Overhead Ratio</span>
-        <b id="statOverhead">…</b>
-      </div>
-      <div class="stat">
-        <span>Disk Capacity (Volume)</span>
-        <b id="statVolume">…</b>
       </div>
       <div class="stat-bar-wrap">
         <div class="stat-bar"><i id="statBar"></i></div>
         <span class="stat-bar-label" id="statBarLabel"></span>
       </div>
     </div>
+
+    <!-- Site settings -->
+    <section class="panel admin-settings">
+      <div class="panel-head">
+        <h2>♛ Site Settings</h2>
+        <button class="btn btn-small btn-ghost" type="button" id="settingsRefreshBtn">Refresh ⟳</button>
+      </div>
+      <form id="settingsForm">
+        <label>Site Title
+          <input type="text" id="setSiteTitle" maxlength="120" placeholder="LEAP" />
+        </label>
+        <label>LOGO — shown in the navbar &amp; footer</label>
+        <div class="logo-row">
+          <img id="setLogoPreview" src="assets/logo.svg" alt="Current LOGO" />
+          <input type="file" id="setLogoFile" accept="image/*" hidden />
+          <button class="btn btn-small btn-ghost" type="button" id="setLogoPickBtn">Choose Image…</button>
+          <button class="btn btn-small" type="button" id="setLogoUploadBtn" disabled>Upload &amp; Apply</button>
+        </div>
+        <label>Home Announcement — supports &lt;strong&gt; / &lt;em&gt; / &lt;br&gt;
+          <textarea id="setAnnouncement" rows="3" placeholder="Welcome to LEAP — new arrivals every month."></textarea>
+        </label>
+        <label>Contact Email
+          <input type="email" id="setContactEmail" placeholder="hello@example.com" />
+        </label>
+        <label>Contact / Social Links
+          <textarea id="setContactSocial" rows="2" placeholder="Instagram @leapchess · WeChat LEAP_Chess"></textarea>
+        </label>
+        <p class="form-msg" id="settingsMsg"></p>
+        <button class="btn" type="submit" id="settingsSaveBtn">Save Settings</button>
+      </form>
+    </section>
 
     <!-- 首页轮播图管理 -->
     <section class="panel admin-slides">

@@ -439,6 +439,56 @@ app.delete('/api/slides/:id', authRequired, adminOnly, async (req, res) => {
   res.json({ ok: true });
 });
 
+/* ---------------- 全站设置（settings 表） ---------------- */
+const SETTINGS_KEYS = ['site_title', 'logo_url', 'announcement_html', 'contact_email', 'contact_social'];
+
+/** settings 表 upsert（双方言兼容：PG 不能用 db.run，其会自动追加 RETURNING id） */
+async function upsertSetting(key, value) {
+  if (db.type === 'postgresql') {
+    await db.query(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+      [key, value]
+    );
+  } else {
+    await db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
+  }
+}
+
+// 公开：返回全部设置（前台渲染 title/LOGO/公告/联系方式）
+app.get('/api/settings', async (req, res) => {
+  const rows = await db.query('SELECT key, value FROM settings');
+  const settings = {};
+  for (const r of rows) settings[r.key] = r.value;
+  res.json({ settings });
+});
+
+// 管理员：更新单项设置
+app.put('/api/settings', authRequired, adminOnly, async (req, res) => {
+  const { key, value } = req.body || {};
+  if (!SETTINGS_KEYS.includes(key)) {
+    return res.status(400).json({ error: 'Unknown setting key' });
+  }
+  if (typeof value !== 'string') {
+    return res.status(400).json({ error: 'Value must be a string' });
+  }
+  if (Buffer.byteLength(value, 'utf8') > 64 * 1024) {
+    return res.status(400).json({ error: 'Setting value too large' });
+  }
+  await upsertSetting(key, value);
+  res.json({ ok: true, key });
+});
+
+// 管理员：LOGO 上传（dataURL → 落盘 /uploads/ → 写入 settings.logo_url）
+app.post('/api/settings/logo', authRequired, adminOnly, async (req, res) => {
+  const oldRows = await db.query("SELECT value FROM settings WHERE key = 'logo_url'");
+  const url = saveDataUrl(req.body && req.body.image);
+  if (!url) return res.status(400).json({ error: 'Unsupported or invalid image data' });
+  await upsertSetting('logo_url', url);
+  // 旧 LOGO 若为落盘图片且无其它引用则清理
+  if (oldRows[0]) await removeUnreferenced([oldRows[0].value]);
+  res.json({ url });
+});
+
 /* ---------------- 存储统计（管理员） ---------------- */
 app.get('/api/stats/storage', authRequired, adminOnly, async (req, res) => {
   const { totalBytes: dbBytes, productBytes: dbProductBytes } = await storageStats();

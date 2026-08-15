@@ -22,9 +22,10 @@
 
 | 角色 | 用户名 | 密码 | 权限 |
 |------|--------|------|------|
-| 超级管理员 | `P001` | `123456` | 后台轮播图/商品/存储统计全部管理 |
+| 超级管理员 | `P001` | `123456` | 后台轮播图/商品/全站设置/存储监控全部管理 |
 
 前台无任何登录入口；后台入口 `/admin.html` 不在站点任何页面展示链接，需直接访问并内置登录。
+快捷手势：在任意前台页面 2 秒内连敲 5 次空格跳转 `/admin.html`，后台页同样手势跳回前台首页（无可见链接与提示）。
 首次启动自动建表并写入种子数据（幂等；生产 PG 已有数据时种子跳过，由后台人工管理）。
 
 ## 本地运行
@@ -70,10 +71,14 @@ node backend\test-crud.js                                       # 中文数据 C
 | PUT | `/api/slides/:id` | 管理员 | 更新轮播图（alt/sort/enabled/image） |
 | DELETE | `/api/slides/:id` | 管理员 | 删除轮播图（无引用图片自动清理） |
 | GET | `/api/stats/storage` | 管理员 | 存储统计（数据库总占用 / 商品数据占用 / 商品数 / 图片文件数与磁盘占用 / 数据库开销占比 / 磁盘容量与剩余） |
+| GET | `/api/settings` | 公开 | 全站设置（网站标题 / LOGO / 首页公告 / 联系方式，key-value） |
+| PUT | `/api/settings` | 管理员 | 更新单项设置（`{ key, value }`，key 白名单校验） |
+| POST | `/api/settings/logo` | 管理员 | LOGO 上传（dataURL 自动落盘并写入 `logo_url`，旧图无引用时清理） |
 | GET | `/api/products/:id/storage` | 管理员 | 单商品存储明细（图片文件数 / 磁盘字节 / JSON 字节 / 合计） |
 | GET | `/api/health` | 公开 | 健康检查（含数据库类型） |
 
 写操作需要请求头 `Authorization: Bearer <token>`；非管理员调用写接口返回 `403`。
+全站设置存于 `settings` 表（key/value），前台加载时应用网站标题 / LOGO / 首页公告 / 页脚联系方式，公告仅放行 `<strong>/<b>/<em>/<br>` 白名单标签；后台保存后经 BroadcastChannel 通知前台即时同步（无需刷新）。
 所有内容图（轮播图 / 商品主图 / 详情图）落盘存储于图片目录（生产为 Zeabur Volume 挂载点，由 `UPLOAD_DIR` 指定；本地默认 `backend/data/uploads`），数据库仅保存 `/uploads/...` URL 引用；文件以内容哈希命名，自动去重（每组图集最多 10 张，商品至少 1 张主图；后台单张大小上限 8MB）。删除商品/轮播/换图时自动清理无引用的图片文件。
 商品另支持 `variants` 颜色/款式变体字段（API 兼容保留，新后台界面不再展示与编辑）。
 
@@ -115,6 +120,7 @@ node backend\test-crud.js                                       # 中文数据 C
 - [x] 数据持久化（本地 SQLite / Zeabur PostgreSQL，重启不丢数据）
 - [x] 图片落盘存储（Volume + 内容哈希去重，跨部署持久化）
 - [x] 存储统计面板（数据占用与磁盘容量双口径、单商品明细 Tooltip）
+- [x] 全站设置中心（网站标题/LOGO/公告/联系方式，settings 表 + BroadcastChannel 免刷新同步）
 - [x] 健康检查 `/api/health` 返回当前数据库类型
 
 ## 项目结构
@@ -133,7 +139,7 @@ node backend\test-crud.js                                       # 中文数据 C
 │   ├── chess-clock.html 等 # 4 个分类页
 │   ├── product.html        # 商品详情（主图横滑 + 详情图 + 卖点）
 │   ├── journey.html        # 品牌历程
-│   ├── admin.html          # 管理后台（隐藏入口：内置登录 + 轮播/商品/存储统计）
+│   ├── admin.html          # 管理后台（隐藏入口：内置登录 + 服务器监控/全站设置/轮播/商品）
 │   ├── css/style.css       # 方案F 白底金黑样式 + 后台区块
 │   └── js/
 │       ├── store.js        # 前台 API 层（同源探测 + 商品/轮播取数）

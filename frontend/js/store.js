@@ -57,3 +57,12 @@ export async function fetchSlides() {
   const { slides } = await get('/slides');
   return slides;
 }
+
+let settingsCache = null;
+/** 全站设置（settings 表：site_title/logo_url/announcement_html/contact_*，模块级缓存） */
+export async function fetchSettings(force = false) {
+  if (settingsCache && !force) return settingsCache;
+  const { settings } = await get('/settings');
+  settingsCache = settings || {};
+  return settingsCache;
+}

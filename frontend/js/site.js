@@ -5,7 +5,7 @@
  * 维护跨页购物车（localStorage 独立键 pf_cart；存储不可用时自动降级为内存态）。
  * 商品信息经 store.js 从后端拉取（模块级缓存，仅拉一次）。
  */
-import { fetchProducts, escapeHtml } from './store.js';
+import { fetchProducts, fetchSettings, escapeHtml } from './store.js';
 
 const KEY = 'pf_cart';
 const PAGE = document.body.dataset.page || 'home';
@@ -140,6 +140,8 @@ $('#exportBtn').addEventListener('click', () => {
   const a = Object.assign(document.createElement('a'), { href: url, download: 'leap-shopping-list.txt' });
   a.click();
   URL.revokeObjectURL(url);
+  // 导出完成后购物车归零（数量清零、抽屉关闭）
+  cart.clear(); save(); renderCart(); closeDrawer();
 });
 
 /* ---------- 全站事件委托 ---------- */
@@ -161,6 +163,77 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('#navLinks a')) { $('#nav').classList.remove('open'); }
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+/* ---------- 隐蔽后台入口：2 秒内连敲 5 次空格 → /admin.html ---------- */
+const spaceStamps = [];
+document.addEventListener('keydown', (e) => {
+  if (e.key !== ' ' || e.repeat) return;
+  if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  const now = Date.now();
+  spaceStamps.push(now);
+  while (spaceStamps.length > 5) spaceStamps.shift();
+  if (spaceStamps.length === 5 && now - spaceStamps[0] <= 2000) {
+    spaceStamps.length = 0;
+    location.href = 'admin.html';
+  }
+});
+
+/* ---------- 全站设置（title / LOGO / 公告 / 联系方式） ---------- */
+const DEFAULT_LOGO = 'assets/logo.svg';
+
+/** 公告安全渲染：先全量转义，仅放行白名单标签（<strong>/<b>/<em>/<br>），杜绝 XSS */
+function sanitizeAnnouncement(html) {
+  return escapeHtml(html).replace(/&lt;(\/?(?:strong|b|em)|br\s*\/?)&gt;/gi, '<$1>');
+}
+
+function applySettings(s) {
+  // 网站标题：保留各页 “·” 后的页面后缀
+  const siteTitle = String(s.site_title || '').trim();
+  if (siteTitle) {
+    const suffix = document.title.split('·').slice(1).join('·').trim();
+    document.title = suffix ? `${siteTitle} · ${suffix}` : siteTitle;
+  }
+  // LOGO（导航栏 + 页脚）：未配置时回退静态品牌资产
+  const logo = String(s.logo_url || '').trim();
+  document.querySelectorAll('.nav-logo img, .footer-inner > img').forEach((img) => {
+    img.src = logo || DEFAULT_LOGO;
+  });
+  // 首页公告栏（仅首页，空内容时移除）
+  const ann = String(s.announcement_html || '').trim();
+  let bar = $('#announceBar');
+  if (ann && PAGE === 'home') {
+    if (!bar) {
+      $('#nav').insertAdjacentHTML('afterend', '<div class="announce-bar" id="announceBar" role="status"></div>');
+      bar = $('#announceBar');
+    }
+    bar.innerHTML = sanitizeAnnouncement(ann);
+  } else if (bar) {
+    bar.remove();
+  }
+  // 页脚联系方式
+  const email = String(s.contact_email || '').trim();
+  const social = String(s.contact_social || '').trim();
+  let contact = $('#footerContact');
+  if (email || social) {
+    const text = [email ? `✉ ${escapeHtml(email)}` : '', social ? escapeHtml(social) : ''].filter(Boolean).join(' · ');
+    if (!contact) {
+      $('.footer-copy').insertAdjacentHTML('beforeend', '<span id="footerContact"></span>');
+      contact = $('#footerContact');
+    }
+    contact.innerHTML = text;
+  } else if (contact) {
+    contact.remove();
+  }
+}
+fetchSettings().then(applySettings).catch(() => { /* 后端不可达：保持静态默认值 */ });
+
+/* 后台保存设置后经 BroadcastChannel 通知，前台即时同步（无需刷新页面） */
+try {
+  const bc = new BroadcastChannel('leap_settings');
+  bc.onmessage = (e) => {
+    if (e.data && e.data.type === 'settings') fetchSettings(true).then(applySettings).catch(() => {});
+  };
+} catch { /* 不支持 BroadcastChannel 的环境静默降级 */ }
 
 /* ---------- 滚动显现（JS 仅加类，动画为 CSS） ---------- */
 const io = new IntersectionObserver((es) => es.forEach((e) => {
