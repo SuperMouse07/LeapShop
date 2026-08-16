@@ -28,6 +28,17 @@ app.use(cors());
 app.use(express.json({ limit: '80mb' })); // 多图 base64 内嵌提交：单商品图片总量上限 50MB（二进制口径），base64 膨胀约 1/3 后约 67MB，预留 JSON 开销余量
 
 /* ---------------- 数据规整工具 ---------------- */
+/** 排序权重归一：undefined = 不改动；null/空串 = 清除权重；其余截断为整数 */
+function toSortWeight(v, fallback = null) {
+  if (v === undefined) return fallback;
+  if (v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+}
+
+/** 商品列表统一排序：已设权重者优先（权重升序，同权重按上传时间倒序），未设权重者按上传时间倒序 */
+const PRODUCTS_ORDER = 'ORDER BY (sort_weight IS NULL) ASC, sort_weight ASC, created_at DESC, id DESC';
+
 /** 归一化图片集合：兼容旧单图字段 / JSON 字符串 / 数组，最多 MAX_IMAGES 张 */
 function toImages(value, legacySingle = '') {
   let arr = [];
@@ -267,14 +278,14 @@ app.get('/api/auth/me', authRequired, (req, res) => {
 });
 
 /* ---------------- 商品接口 ---------------- */
-// 列表（公开，可按分类过滤）
+// 列表（公开，可按分类过滤；排序：人工权重升序 → 上传时间倒序）
 app.get('/api/products', async (req, res) => {
   const { category } = req.query;
   let rows;
   if (category) {
-    rows = await db.query('SELECT * FROM products WHERE category = ? ORDER BY id ASC', [category]);
+    rows = await db.query(`SELECT * FROM products WHERE category = ? ${PRODUCTS_ORDER}`, [category]);
   } else {
-    rows = await db.query('SELECT * FROM products ORDER BY id ASC');
+    rows = await db.query(`SELECT * FROM products ${PRODUCTS_ORDER}`);
   }
   res.json({ products: rows.map(parseProduct) });
 });
@@ -296,7 +307,7 @@ app.get('/api/products/:id/storage', authRequired, adminOnly, async (req, res) =
 
 // 新增（管理员）
 app.post('/api/products', authRequired, adminOnly, async (req, res) => {
-  const { name, category, price, description, image, images, variants, details, info, stock } = req.body || {};
+  const { name, category, price, description, image, images, variants, details, info, stock, sort_weight } = req.body || {};
   if (!name || !String(name).trim()) {
     return res.status(400).json({ error: 'Product name is required' });
   }
@@ -306,7 +317,7 @@ app.post('/api/products', authRequired, adminOnly, async (req, res) => {
   }
   const detailList = materializeImages(toImages(details));
   const { id } = await db.run(
-    'INSERT INTO products (name, category, price, description, image, images, variants, details, info, stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO products (name, category, price, description, image, images, variants, details, info, stock, sort_weight) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       String(name).trim(),
       category || 'chess-timer',
@@ -318,6 +329,7 @@ app.post('/api/products', authRequired, adminOnly, async (req, res) => {
       JSON.stringify(detailList),
       JSON.stringify(toInfo(info)),
       Number(stock) || 0,
+      toSortWeight(sort_weight),
     ]
   );
   const rows = await db.query('SELECT * FROM products WHERE id = ?', [id]);
@@ -341,7 +353,7 @@ app.put('/api/products/:id', authRequired, adminOnly, async (req, res) => {
   const detailList = materializeImages(hasNewDetails ? toImages(b.details) : p.details);
   const infoList = b.info !== undefined ? toInfo(b.info) : p.info;
   await db.run(
-    `UPDATE products SET name = ?, category = ?, price = ?, description = ?, image = ?, images = ?, variants = ?, details = ?, info = ?, stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    `UPDATE products SET name = ?, category = ?, price = ?, description = ?, image = ?, images = ?, variants = ?, details = ?, info = ?, stock = ?, sort_weight = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
     [
       b.name !== undefined ? String(b.name).trim() : p.name,
       b.category !== undefined ? b.category : p.category,
@@ -353,6 +365,7 @@ app.put('/api/products/:id', authRequired, adminOnly, async (req, res) => {
       JSON.stringify(detailList),
       JSON.stringify(infoList),
       b.stock !== undefined ? Number(b.stock) || 0 : p.stock,
+      toSortWeight(b.sort_weight, p.sort_weight ?? null),
       req.params.id,
     ]
   );
@@ -361,12 +374,16 @@ app.put('/api/products/:id', authRequired, adminOnly, async (req, res) => {
   res.json({ product: parseProduct(rows[0]) });
 });
 
-// 删除（管理员）
+// 删除（管理员）；若删的是主推款，自动清空主推设置
 app.delete('/api/products/:id', authRequired, adminOnly, async (req, res) => {
   const exist = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
   if (!exist[0]) return res.status(404).json({ error: 'Product not found' });
   const urls = productUploadUrls(parseProduct(exist[0]));
   await db.run('DELETE FROM products WHERE id = ?', [req.params.id]);
+  const heroRows = await db.query("SELECT value FROM settings WHERE key = 'hero_product_id'");
+  if (heroRows[0] && String(heroRows[0].value) === String(req.params.id)) {
+    await upsertSetting('hero_product_id', ''); // 重置为无主推（settings 单键 upsert 天然幂等）
+  }
   await removeUnreferenced(urls);
   res.json({ ok: true });
 });
@@ -440,7 +457,7 @@ app.delete('/api/slides/:id', authRequired, adminOnly, async (req, res) => {
 });
 
 /* ---------------- 全站设置（settings 表） ---------------- */
-const SETTINGS_KEYS = ['site_title', 'logo_url', 'announcement_html', 'contact_email', 'contact_social'];
+const SETTINGS_KEYS = ['site_title', 'logo_url', 'announcement_html', 'contact_email', 'contact_social', 'hero_product_id'];
 
 /** settings 表 upsert（双方言兼容：PG 不能用 db.run，其会自动追加 RETURNING id） */
 async function upsertSetting(key, value) {
@@ -473,6 +490,16 @@ app.put('/api/settings', authRequired, adminOnly, async (req, res) => {
   }
   if (Buffer.byteLength(value, 'utf8') > 64 * 1024) {
     return res.status(400).json({ error: 'Setting value too large' });
+  }
+  if (key === 'hero_product_id' && value !== '') {
+    // 主推款唯一性：单键 upsert 天然保证同一时间只有一个；仅允许指向真实存在的商品
+    if (!/^\d+$/.test(value)) {
+      return res.status(400).json({ error: 'hero_product_id must be a product id or empty' });
+    }
+    const rows = await db.query('SELECT id FROM products WHERE id = ?', [Number(value)]);
+    if (!rows[0]) {
+      return res.status(400).json({ error: 'Product not found for hero setting' });
+    }
   }
   await upsertSetting(key, value);
   res.json({ ok: true, key });

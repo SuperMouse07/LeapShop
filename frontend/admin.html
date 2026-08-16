@@ -52,8 +52,19 @@
   <!-- Admin workspace -->
   <main class="admin-main hidden" id="adminPanel">
 
+    <!-- Left sidebar navigation（锚点跳转） -->
+    <aside class="admin-side">
+      <a href="#statsPanel">♖ Server Monitor</a>
+      <a href="#heroPanel">♕ Hero Product</a>
+      <a href="#productsGrid">♜ Products</a>
+      <a href="#slidesPanel">♞ Home Carousel</a>
+      <a href="#settingsPanel">♛ Site Settings</a>
+    </aside>
+
+    <div class="admin-content">
+
     <!-- Server status monitor -->
-    <div class="panel admin-stats">
+    <div class="panel admin-stats" id="statsPanel">
       <div class="stat">
         <span>Database</span>
         <b id="statDbType">…</b>
@@ -90,8 +101,24 @@
       </div>
     </div>
 
+    <!-- Hero product（主推款：全局唯一，前台置顶展示） -->
+    <section class="panel admin-hero-panel" id="heroPanel">
+      <div class="panel-head">
+        <h2>♕ Hero Product</h2>
+        <button class="btn btn-small btn-ghost" type="button" id="heroRefreshBtn">Refresh ⟳</button>
+      </div>
+      <p class="hero-hint">Pick exactly one product as the current hero — it is pinned to the top of the home Featured block and the first slot of the product overview. Choosing a new hero automatically replaces the previous one.</p>
+      <div class="hero-row">
+        <label>Current hero
+          <select id="heroSelect"></select>
+        </label>
+        <button class="btn btn-small btn-ghost" type="button" id="heroClearBtn">Clear Hero</button>
+      </div>
+      <p class="form-msg" id="heroMsg"></p>
+    </section>
+
     <!-- Site settings -->
-    <section class="panel admin-settings">
+    <section class="panel admin-settings" id="settingsPanel">
       <div class="panel-head">
         <h2>♛ Site Settings</h2>
         <button class="btn btn-small btn-ghost" type="button" id="settingsRefreshBtn">Refresh ⟳</button>
@@ -122,7 +149,7 @@
     </section>
 
     <!-- 首页轮播图管理 -->
-    <section class="panel admin-slides">
+    <section class="panel admin-slides" id="slidesPanel">
       <div class="panel-head">
         <h2>♞ Home Carousel</h2>
         <button class="btn btn-small btn-ghost" type="button" id="slidesRefreshBtn">Refresh ⟳</button>
@@ -137,7 +164,7 @@
       </form>
     </section>
 
-    <div class="admin-grid">
+    <div class="admin-grid" id="productsGrid">
 
       <!-- Left: create / edit form -->
       <form class="panel" id="productForm">
@@ -166,6 +193,16 @@
         <label class="hidden" id="customCatRow">Custom Category Id
           <input type="text" id="pCustomCat" placeholder="e.g. chess-set" />
         </label>
+        <div class="form-row form-row-ops">
+          <label class="check-label">Featured as Hero
+            <input type="checkbox" id="pHero" />
+            <span class="field-hint">选中后首页与商品页置顶展示，并替换当前主推款</span>
+          </label>
+          <label>Series Sort Weight
+            <input type="number" id="pWeight" step="1" placeholder="Auto (newest first)" />
+            <span class="field-hint">系列内排序：数字越小越靠前；留空按上传时间倒序</span>
+          </label>
+        </div>
         <label>Description
           <textarea id="pDesc" rows="3" placeholder="One line about what makes it great…"></textarea>
         </label>
@@ -200,16 +237,18 @@
                 <th>ID</th><th>Cover</th><th>Name</th><th>Category</th>
                 <th class="th-num">Price</th><th class="th-num">Stock</th>
                 <th class="th-num">Main</th><th class="th-num">Detail</th>
-                <th class="th-num">Size</th><th>Actions</th>
+                <th class="th-num">Size</th><th>Hero</th><th class="th-num">Weight</th><th>Actions</th>
               </tr>
             </thead>
             <tbody id="productRows">
-              <tr><td colspan="10" class="loading">Loading…</td></tr>
+              <tr><td colspan="12" class="loading">Loading…</td></tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
+
+    </div><!-- /.admin-content -->
   </main>
 
   <script type="module" src="js/admin.js"></script>

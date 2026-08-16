@@ -4,7 +4,7 @@
  * Why Choose Leap / 品牌历程计数动画。JS 仅切换状态类，动效为 CSS。
  */
 import { CATS, CAT_META, WHY, STATS, HERITAGE } from './data.js';
-import { fetchSlides, fetchProducts, escapeHtml, money } from './store.js';
+import { fetchSlides, fetchProducts, fetchSettings, escapeHtml, money } from './store.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -38,14 +38,21 @@ async function initCarousel() {
   startAuto();
 }
 
-/* ---------- Featured：四系列首个代表品交错卡（Learn More → 系列页） ---------- */
-function renderFeatured(products) {
-  const featured = CATS.map((c) => products.find((p) => p.category === c.id)).filter(Boolean);
+/* ---------- Featured：主推款置顶 + 四系列代表品交错卡（主推卡跳转商品详情页） ---------- */
+function renderFeatured(products, heroId) {
+  const hero = heroId ? products.find((p) => String(p.id) === String(heroId)) : null;
+  let featured = CATS
+    .map((c) => products.find((p) => p.category === c.id && (!hero || p.id !== hero.id)))
+    .filter(Boolean);
+  if (hero) featured = [hero, ...featured].slice(0, CATS.length);
   $('#featGrid').innerHTML = featured.map((p) => {
-    const meta = CAT_META[p.category];
+    const meta = CAT_META[p.category] || { file: `product.html?id=${p.id}`, title: p.category };
+    const isHero = Boolean(hero && p.id === hero.id);
+    const link = isHero ? `product.html?id=${p.id}` : meta.file;
     return `
-    <article class="p-card reveal">
-      <a class="p-media" href="${meta.file}" aria-label="${escapeHtml(p.name)}">
+    <article class="p-card reveal${isHero ? ' is-hero' : ''}">
+      ${isHero ? '<span class="hero-badge">♕ Hero</span>' : ''}
+      <a class="p-media" href="${link}" aria-label="${escapeHtml(p.name)}">
         <img src="${p.img}" alt="${escapeHtml(p.name)}" loading="lazy">
       </a>
       <p class="p-cat">${escapeHtml(meta.title)}</p>
@@ -53,7 +60,7 @@ function renderFeatured(products) {
       <p class="p-desc">${escapeHtml(p.description)}</p>
       <div class="p-foot">
         <span class="p-price"><small>USD</small>${money(p.price)}</span>
-        <a class="link-more" href="${meta.file}"><span>Learn More</span><span class="arr">→</span></a>
+        <a class="link-more" href="${link}"><span>Learn More</span><span class="arr">→</span></a>
         <button class="btn-add" data-add="${p.id}">Add to Cart</button>
       </div>
     </article>`;
@@ -75,6 +82,9 @@ $('#stats').innerHTML = STATS.map((s) => `
 $('#heritage').innerHTML = HERITAGE.map((t) => `<p>${escapeHtml(t)}</p>`).join('');
 
 initCarousel();
-fetchProducts().then(renderFeatured).catch(() => {
-  $('#featGrid').innerHTML = '<p class="cart-empty">Products are temporarily unavailable ♟</p>';
-}).finally(() => window.PF.observeReveals());
+Promise.all([fetchProducts(), fetchSettings().catch(() => ({}))])
+  .then(([products, settings]) => renderFeatured(products, settings.hero_product_id))
+  .catch(() => {
+    $('#featGrid').innerHTML = '<p class="cart-empty">Products are temporarily unavailable ♟</p>';
+  })
+  .finally(() => window.PF.observeReveals());

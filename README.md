@@ -121,6 +121,8 @@ node backend\test-crud.js                                       # 中文数据 C
 - [x] 图片落盘存储（Volume + 内容哈希去重，跨部署持久化）
 - [x] 存储统计面板（应用数据占比与磁盘使用率双进度条、数据占用与磁盘容量双口径、单商品明细 Tooltip）
 - [x] 全站设置中心（网站标题/LOGO/公告/联系方式，settings 表 + BroadcastChannel 免刷新同步）
+- [x] 主推款机制（settings.hero_product_id 全局唯一，首页 Featured 置顶 + 商品总览第一行第一位，删除商品自动清空）
+- [x] 系列内排序权重（sort_weight 升序优先，未设置按上传时间倒序；后台列表/表单双入口编辑）
 - [x] 健康检查 `/api/health` 返回当前数据库类型
 
 ## 项目结构

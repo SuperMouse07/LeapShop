@@ -150,6 +150,7 @@ async function initSchema() {
         details TEXT DEFAULT '[]',
         info TEXT DEFAULT '[]',
         stock INTEGER NOT NULL DEFAULT 0,
+        sort_weight INTEGER,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )`);
@@ -184,6 +185,7 @@ async function initSchema() {
         details TEXT DEFAULT '[]',
         info TEXT DEFAULT '[]',
         stock INTEGER NOT NULL DEFAULT 0,
+        sort_weight INTEGER,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       )`);
@@ -210,6 +212,7 @@ async function initSchema() {
   await ensureColumn('products', 'variants', "TEXT DEFAULT '[]'");
   await ensureColumn('products', 'details', "TEXT DEFAULT '[]'");
   await ensureColumn('products', 'info', "TEXT DEFAULT '[]'");
+  await ensureColumn('products', 'sort_weight', 'INTEGER'); // 系列内排序权重（NULL = 未设置，按上传时间倒序）
 }
 
 /** 若表中缺少某列则补上（SQLite 用 pragma，PostgreSQL 用 information_schema） */

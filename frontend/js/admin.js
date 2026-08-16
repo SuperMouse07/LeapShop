@@ -234,6 +234,44 @@ $('settingsForm').addEventListener('submit', async (e) => {
   }
 });
 
+/* ---------- 主推款（Hero Product：settings.hero_product_id 全局唯一） ---------- */
+let heroId = '';          // 当前主推款 id（字符串，'' = 无）
+let heroProducts = [];    // 供下拉选择的全量商品
+
+function setHeroMsg(text, ok = true) {
+  const el = $('heroMsg');
+  el.textContent = text || '';
+  el.className = `form-msg${text && !ok ? ' err' : ''}`;
+}
+
+function renderHeroSelect() {
+  const sel = $('heroSelect');
+  sel.innerHTML =
+    '<option value="">— No hero product —</option>' +
+    heroProducts.map((p) => `<option value="${p.id}">#${p.id} · ${escapeHtml(p.name)}</option>`).join('');
+  sel.value = heroId;
+}
+
+/** 设置/清除主推款：后端单键 upsert 天然保证唯一，选新的自动替换旧的 */
+async function setHero(value, silent = false) {
+  try {
+    await api('/settings', { method: 'PUT', body: JSON.stringify({ key: 'hero_product_id', value }) });
+    heroId = value;
+    renderHeroSelect();
+    if (!silent) setHeroMsg(value ? `Hero product set (#${value}) — pinned on home & overview.` : 'Hero product cleared.');
+    loadList();
+  } catch (err) {
+    setHeroMsg(err.message || 'Set hero failed', false);
+  }
+}
+
+$('heroSelect').addEventListener('change', (e) => setHero(e.target.value));
+$('heroClearBtn').addEventListener('click', () => setHero(''));
+$('heroRefreshBtn').addEventListener('click', async () => {
+  await loadList();
+  setHeroMsg('');
+});
+
 /* ---------- 隐蔽快捷入口：2 秒内连敲 5 次空格 → 前台首页 ---------- */
 const spaceStamps = [];
 document.addEventListener('keydown', (e) => {
@@ -379,15 +417,22 @@ $('slidesRefreshBtn').addEventListener('click', loadSlides);
 async function loadList() {
   const tbody = $('productRows');
   try {
-    const { products } = await api('/products');
+    const [{ products }, { settings }] = await Promise.all([api('/products'), api('/settings')]);
+    heroId = String(settings.hero_product_id || '');
+    heroProducts = products;
+    renderHeroSelect();
     $('productCount').textContent = `${products.length} item(s)`;
     if (!products.length) {
-      tbody.innerHTML = '<tr><td colspan="10" class="loading">No products yet — add your first one on the left.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12" class="loading">No products yet — add your first one on the left.</td></tr>';
       return;
     }
     tbody.innerHTML = products
       .map((p) => {
         const img = productImage(p);
+        const isHero = String(p.id) === heroId;
+        const heroCell = isHero
+          ? `<span class="hero-flag" title="Current hero product">♕</span><button class="btn btn-small btn-ghost" data-act="unhero" data-id="${p.id}">Clear</button>`
+          : `<button class="btn btn-small btn-ghost" data-act="hero" data-id="${p.id}">Set</button>`;
         return `
         <tr>
           <td>${p.id}</td>
@@ -399,6 +444,8 @@ async function loadList() {
           <td class="td-num">${(p.images || []).length}</td>
           <td class="td-num">${(p.details || []).length}</td>
           <td class="td-num tip-cell" id="rowSize-${p.id}" data-tip="">…</td>
+          <td class="td-hero">${heroCell}</td>
+          <td><input type="number" step="1" class="row-weight" data-id="${p.id}" value="${p.sort_weight ?? ''}" placeholder="—" title="Series sort weight" /></td>
           <td class="row-actions">
             <button class="btn btn-small btn-ghost" data-act="edit" data-id="${p.id}">Edit</button>
             <button class="btn btn-small btn-danger" data-act="del" data-id="${p.id}">Delete</button>
@@ -409,7 +456,7 @@ async function loadList() {
     tbody.dataset.products = JSON.stringify(products);
     loadRowStorage(products);
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="10" class="loading">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" class="loading">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
@@ -468,6 +515,8 @@ function fillForm(p) {
   syncCustomCat();
   $('pPrice').value = p.price;
   $('pStock').value = p.stock ?? '';
+  $('pHero').checked = String(p.id) === heroId;
+  $('pWeight').value = p.sort_weight ?? '';
   $('pDesc').value = p.description || '';
   $('pInfo').value = (p.info || []).join('\n');
   pendingImages = [...(p.images || [])];
@@ -565,6 +614,7 @@ $('productForm').addEventListener('submit', async (e) => {
     info: $('pInfo').value.split('\n').map((s) => s.trim()).filter(Boolean),
     images: pendingImages,
     details: pendingDetails,
+    sort_weight: $('pWeight').value.trim() === '' ? null : Number($('pWeight').value),
     // variants 不在新界面展示，编辑时不提交以保留旧值
   };
   try {
@@ -573,12 +623,21 @@ $('productForm').addEventListener('submit', async (e) => {
       setMsg('Images are too large in total (limit ≈ 50MB per product). Please remove some images.', false);
       return;
     }
+    let savedId = editId;
     if (editId) {
       await api(`/products/${editId}`, { method: 'PUT', body: payload });
       setMsg(`Product #${editId} updated ✓`);
     } else {
       const { product } = await api('/products', { method: 'POST', body: payload });
+      savedId = String(product.id);
       setMsg(`Product "${product.name}" uploaded ✓`);
+    }
+    // 主推款联动：勾选→设为唯一主推；取消勾选且自己是当前主推→清空
+    const wantHero = $('pHero').checked;
+    if (wantHero && String(savedId) !== heroId) {
+      await setHero(String(savedId), true);
+    } else if (!wantHero && editId && String(editId) === heroId) {
+      await setHero('', true);
     }
     resetForm();
     loadList();
@@ -591,10 +650,12 @@ $('productForm').addEventListener('submit', async (e) => {
 $('cancelEdit').addEventListener('click', resetForm);
 $('refreshBtn').addEventListener('click', loadList);
 
-/* Row actions (edit / delete) */
+/* Row actions (hero / edit / delete) */
 $('productRows').addEventListener('click', async (e) => {
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
+  if (btn.dataset.act === 'hero') return setHero(String(btn.dataset.id));
+  if (btn.dataset.act === 'unhero') return setHero('');
   const products = JSON.parse($('productRows').dataset.products || '[]');
   const product = products.find((p) => p.id === Number(btn.dataset.id));
   if (btn.dataset.act === 'edit' && product) {
@@ -610,6 +671,22 @@ $('productRows').addEventListener('click', async (e) => {
     } catch (err) {
       alert(`Delete failed: ${err.message}`);
     }
+  }
+});
+
+/* 列表内权重输入：失焦/回车即保存（空值 = 清除权重回到自动排序） */
+$('productRows').addEventListener('change', async (e) => {
+  const input = e.target.closest('.row-weight');
+  if (!input) return;
+  const val = input.value.trim();
+  try {
+    await api(`/products/${input.dataset.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ sort_weight: val === '' ? null : Number(val) }),
+    });
+    await loadList();
+  } catch (err) {
+    alert(`Weight update failed: ${err.message}`);
   }
 });
 
