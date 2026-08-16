@@ -688,7 +688,7 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 .form-actions { display: flex; gap: 12px; }
 
 /* ---------- 编辑模式深色主题（is-editing） ---------- */
-#productForm { transition: background-color .35s ease, border-color .35s ease, color .35s ease; }
+#productForm { transition: background-color .35s ease, border-color .35s ease, color .35s ease; scroll-margin-top: 84px; } /* scroll-margin：scrollIntoView 后避开 sticky 导航 */
 #productForm.is-editing {
   background: #1b1712; border-color: var(--line-gold); color: #f5f1e8;
 }

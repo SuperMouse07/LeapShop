@@ -527,7 +527,8 @@ function fillForm(p) {
   $('formTitle').textContent = `♟ Edit Product #${p.id}`;
   $('submitBtn').textContent = 'Save Changes';
   setMsg('');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // 平滑滚动到表单可视位置（上下分栏后表单在表格上方，无需回页顶）
+  $('productForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /* ---------- Image galleries（主图 + 详情图） ---------- */
