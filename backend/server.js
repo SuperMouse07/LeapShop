@@ -492,8 +492,16 @@ app.post('/api/settings/logo', authRequired, adminOnly, async (req, res) => {
 /* ---------------- 存储统计（管理员） ---------------- */
 app.get('/api/stats/storage', authRequired, adminOnly, async (req, res) => {
   const { totalBytes: dbBytes, productBytes: dbProductBytes } = await storageStats();
-  const uploads = dirStats(UPLOAD_DIR); // 图片文件落盘占用（生产为 Volume 挂载点）
+  const uploads = dirStats(UPLOAD_DIR); // 图片文件落盘占用（生产为 Volume 挂载点，含轮播图/LOGO）
   const [{ c }] = await db.query('SELECT COUNT(*) AS c FROM products');
+  // 商品图片占用：仅累计商品引用的图片文件，排除轮播图/LOGO，保证“商品数据占比”口径准确
+  const rows = await db.query('SELECT * FROM products');
+  const productUrls = new Set();
+  for (const row of rows) {
+    for (const u of productUploadUrls(parseProduct(row))) productUrls.add(u);
+  }
+  let productImageBytes = 0;
+  for (const u of productUrls) productImageBytes += uploadFileBytes(u);
   const totalBytes = dbBytes + uploads.bytes; // 数据实际占用 = 数据库 + 图片文件
   const volume = volumeStats(UPLOAD_DIR); // 磁盘容量/剩余（与 totalBytes 口径不同：一个是占用，一个是容量）
   // 数据库系统开销 = 库内非商品表部分（目录表/用户表/WAL 等），占比按总体积计算
@@ -501,10 +509,11 @@ app.get('/api/stats/storage', authRequired, adminOnly, async (req, res) => {
   res.json({
     dbType: db.type,
     totalBytes,
-    productBytes: dbProductBytes + uploads.bytes,
+    productBytes: dbProductBytes + productImageBytes,
     productCount: Number(c),
     imageFileCount: uploads.files,
     imageFileBytes: uploads.bytes,
+    productImageBytes,
     overheadBytes,
     overheadRatio: totalBytes > 0 ? Number(((overheadBytes / totalBytes) * 100).toFixed(1)) : 0,
     volumeTotalBytes: volume.totalBytes,
