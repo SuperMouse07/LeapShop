@@ -492,6 +492,7 @@ $('pCategory').addEventListener('change', syncCustomCat);
 
 function resetForm() {
   $('productForm').reset();
+  $('productForm').classList.remove('is-editing'); // 回到浅色新建模式
   $('editId').value = '';
   pendingImages = [];
   pendingDetails = [];
@@ -503,6 +504,7 @@ function resetForm() {
 }
 
 function fillForm(p) {
+  $('productForm').classList.add('is-editing'); // 深色编辑态：提示当前在修改已有数据
   $('editId').value = p.id;
   $('pName').value = p.name;
   if (KNOWN_CATS.includes(p.category)) {
