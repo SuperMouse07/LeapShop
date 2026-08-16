@@ -4,7 +4,7 @@
  * 商品数据来自后端 /api/products?category=。
  */
 import { CAT_META } from './data.js';
-import { fetchProducts, escapeHtml, money, withRatios, PLACEHOLDER } from './store.js';
+import { fetchProducts, fetchSettings, escapeHtml, money, withRatios, PLACEHOLDER } from './store.js';
 
 const $ = (s) => document.querySelector(s);
 const cat = document.body.dataset.cat;
@@ -15,14 +15,20 @@ async function init() {
     $('#catRoot').innerHTML = '<p class="cart-empty">Series not found ♟</p>';
     return;
   }
-  const list = await fetchProducts()
-    .then((all) => withRatios(all.filter((p) => p.category === cat)))
-    .catch(() => null);
-
-  if (list === null) {
+  const [all, settings] = await Promise.all([
+    fetchProducts().catch(() => null),
+    fetchSettings().catch(() => ({})),
+  ]);
+  if (all === null) {
     $('#catRoot').innerHTML = '<p class="cart-empty">Products are temporarily unavailable ♟</p>';
     return;
   }
+  // 主推款在本分类时置顶（其余顺序沿用后端：人工权重升序 → 上传时间倒序）
+  const heroId = String(settings.hero_product_id || '');
+  const hero = heroId ? all.find((p) => String(p.id) === heroId && p.category === cat) : null;
+  let list = all.filter((p) => p.category === cat);
+  if (hero) list = [hero, ...list.filter((p) => p.id !== hero.id)];
+  list = withRatios(list);
 
   $('#catRoot').innerHTML = `
   <header class="cat-hero">
@@ -39,14 +45,18 @@ async function init() {
         <span class="ov-count">${list.length} Items</span>
       </div>
       <div class="masonry">
-        ${list.map((p) => `
-          <a class="m-item reveal" href="product.html?id=${p.id}" aria-label="${escapeHtml(p.name)}">
+        ${list.map((p) => {
+          const isHero = hero && p.id === hero.id;
+          return `
+          <a class="m-item reveal${isHero ? ' is-hero' : ''}" href="product.html?id=${p.id}" aria-label="${escapeHtml(p.name)}">
+            ${isHero ? '<span class="hero-badge">♕ Hero</span>' : ''}
             <span class="p-media" style="aspect-ratio:${p.ratio};">
               <img src="${p.img || PLACEHOLDER}" alt="${escapeHtml(p.name)}" loading="lazy">
             </span>
             <span class="m-name">${escapeHtml(p.name)}</span>
             <span class="m-meta"><span>${escapeHtml(p.description.slice(0, 18))}…</span><span class="price">${money(p.price)}</span></span>
-          </a>`).join('')}
+          </a>`;
+        }).join('')}
       </div>
     </div>
   </section>`;
