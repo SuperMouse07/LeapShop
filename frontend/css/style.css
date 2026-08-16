@@ -533,12 +533,16 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 }
 .admin-stats .stat b { font-family: var(--serif); font-size: 19px; font-weight: 500; color: var(--ink); }
 .admin-stats .stat b.gold { color: var(--gold-deep); }
+.stat-bars { flex-basis: 100%; display: flex; flex-direction: column; gap: 8px; }
 .stat-bar-wrap { flex: 1; min-width: 220px; display: flex; align-items: center; gap: 14px; }
 .stat-bar { flex: 1; height: 8px; background: var(--line-soft); overflow: hidden; }
 .stat-bar i {
   display: block; height: 100%; width: 0;
   background: linear-gradient(90deg, var(--gold), var(--gold-deep));
   transition: width .5s ease;
+}
+.stat-bars .stat-bar-wrap + .stat-bar-wrap .stat-bar i {
+  background: linear-gradient(90deg, #9aa3b2, #6b7280);
 }
 .stat-bar-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
 

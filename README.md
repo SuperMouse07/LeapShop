@@ -70,7 +70,7 @@ node backend\test-crud.js                                       # 中文数据 C
 | POST | `/api/slides` | 管理员 | 新增轮播图（image 支持 dataURL 自动落盘） |
 | PUT | `/api/slides/:id` | 管理员 | 更新轮播图（alt/sort/enabled/image） |
 | DELETE | `/api/slides/:id` | 管理员 | 删除轮播图（无引用图片自动清理） |
-| GET | `/api/stats/storage` | 管理员 | 存储统计（数据库总占用 / 商品数据占用 / 商品数 / 图片文件数与磁盘占用 / 数据库开销占比 / 磁盘容量与剩余） |
+| GET | `/api/stats/storage` | 管理员 | 存储统计（数据库总占用 / 商品数据占用 / 商品数 / 图片文件数与磁盘占用 / 商品图片占用 productImageBytes / 数据库开销占比 / 磁盘容量与剩余） |
 | GET | `/api/settings` | 公开 | 全站设置（网站标题 / LOGO / 首页公告 / 联系方式，key-value） |
 | PUT | `/api/settings` | 管理员 | 更新单项设置（`{ key, value }`，key 白名单校验） |
 | POST | `/api/settings/logo` | 管理员 | LOGO 上传（dataURL 自动落盘并写入 `logo_url`，旧图无引用时清理） |
@@ -119,7 +119,7 @@ node backend\test-crud.js                                       # 中文数据 C
 - [x] 角色权限（客户写操作 403，未登录 401，管理员正常 CRUD）
 - [x] 数据持久化（本地 SQLite / Zeabur PostgreSQL，重启不丢数据）
 - [x] 图片落盘存储（Volume + 内容哈希去重，跨部署持久化）
-- [x] 存储统计面板（数据占用与磁盘容量双口径、单商品明细 Tooltip）
+- [x] 存储统计面板（应用数据占比与磁盘使用率双进度条、数据占用与磁盘容量双口径、单商品明细 Tooltip）
 - [x] 全站设置中心（网站标题/LOGO/公告/联系方式，settings 表 + BroadcastChannel 免刷新同步）
 - [x] 健康检查 `/api/health` 返回当前数据库类型
 

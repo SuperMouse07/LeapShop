@@ -120,9 +120,21 @@ async function loadStats() {
     $('statDiskTotal').textContent = s.volumeTotalBytes > 0 ? formatBytes(s.volumeTotalBytes) : '—';
     $('statDiskFree').textContent = s.volumeFreeBytes > 0 ? formatBytes(s.volumeFreeBytes) : '—';
     $('statCount').textContent = `${s.productCount} item(s)`;
+    // 口径 1：商品数据占应用总数据（数据库 + 图片文件）的比例，与磁盘容量无关
     $('statBar').style.width = `${Math.min(100, ratio)}%`;
     $('statBarLabel').textContent =
-      `Product data takes ${ratio.toFixed(1)}% of total storage (${formatBytes(s.productBytes)})`;
+      `Product data ${formatBytes(s.productBytes)} of app data ${formatBytes(s.totalBytes)} (${ratio.toFixed(1)}%)`;
+    // 口径 2：磁盘容量使用率（Volume 文件系统整体，含非应用文件）
+    const used = Math.max(0, s.volumeTotalBytes - s.volumeFreeBytes);
+    const diskPct = s.volumeTotalBytes > 0 ? (used / s.volumeTotalBytes) * 100 : 0;
+    const diskBar = $('diskBar');
+    if (diskBar) diskBar.style.width = `${Math.min(100, diskPct).toFixed(1)}%`;
+    const diskLabel = $('diskBarLabel');
+    if (diskLabel) {
+      diskLabel.textContent = s.volumeTotalBytes > 0
+        ? `Disk used (Volume) ${formatBytes(used)} of ${formatBytes(s.volumeTotalBytes)} (${diskPct.toFixed(1)}%)`
+        : 'Disk capacity unavailable';
+    }
   } catch {
     $('statBarLabel').textContent = 'Storage stats unavailable';
   }
