@@ -566,6 +566,9 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
   max-width: var(--wrap); margin: 0 auto; padding: 40px 28px 80px;
   display: flex; flex-direction: row; gap: 28px; align-items: flex-start;
 }
+@media (max-width: 1080px) {
+  .admin-main { flex-direction: column; align-items: stretch; } /* 纵向模式拉伸子项，宽度由父容器约束 */
+}
 /* 后台左侧锚点导航（窄屏降级为顶部横向导航） */
 .admin-side {
   position: sticky; top: 96px; width: 188px; flex: none;
@@ -577,9 +580,9 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
   color: var(--muted); transition: all .2s;
 }
 .admin-side a:hover { color: var(--gold-deep); border-color: var(--line-soft); background: var(--white); }
-.admin-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
+.admin-content { flex: 1; min-width: 0; width: 100%; max-width: 100%; display: flex; flex-direction: column; gap: 28px; }
 @media (max-width: 1080px) {
-  .admin-main { flex-direction: column; }
+  /* 需在 .admin-side 基础规则之后，否则 sticky/188px 会覆盖降级样式 */
   .admin-side { position: static; width: 100%; flex-direction: row; flex-wrap: wrap; }
 }
 .panel {
@@ -668,7 +671,7 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 .slide-add input[type='text']:focus { outline: none; border-color: var(--gold); }
 
 /* ---------- 商品表单与表格 ---------- */
-.admin-grid { display: grid; grid-template-columns: 400px 1fr; gap: 28px; align-items: start; }
+.admin-grid { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 28px; align-items: start; } /* minmax(0,1fr)：表格最小内容宽度不擑破轨道，收敛到 .table-wrap 内横向滚动 */
 #productForm label {
   display: block; font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
   color: var(--muted); margin-bottom: 14px;
@@ -708,7 +711,7 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 .gallery-add:hover { background: rgba(212, 175, 55, .08); }
 .gallery-hint { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-transform: none; }
 
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; max-width: 100%; }
 .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .admin-table th, .admin-table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--line-soft); }
 .admin-table th {
@@ -771,7 +774,7 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 
 /* ---------- 后台响应式 ---------- */
 @media (max-width: 1000px) {
-  .admin-grid { grid-template-columns: 1fr; }
+  .admin-grid { grid-template-columns: minmax(0, 1fr); }
   .form-row { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
