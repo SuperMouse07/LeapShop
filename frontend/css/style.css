@@ -694,7 +694,7 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 .slide-add input[type='text']:focus { outline: none; border-color: var(--gold); }
 
 /* ---------- 商品表单与表格 ---------- */
-.admin-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: stretch; } /* 上下分栏：表单在上、表格在下，各占满容器宽 */
+.admin-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: stretch; min-width: 0; } /* 上下分栏：表单在上、表格在下，各占满容器宽 */
 #productForm label {
   display: block; font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
   color: var(--muted); margin-bottom: 14px;
@@ -825,6 +825,7 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 /* ---------- 后台响应式 ---------- */
 @media (max-width: 1000px) {
   .form-row { grid-template-columns: 1fr; }
+  .form-row-ops { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
   .slide-row { flex-wrap: wrap; }
@@ -832,3 +833,51 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
   .admin-stats { gap: 18px; }
   .announce-bar { font-size: 13px; padding: 8px 16px; }
 }
+
+/* ---------- 商品列表分页 + 筛选控件 ---------- */
+.list-toolbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 12px 0; border-bottom: 1px solid var(--line-soft); margin-bottom: 12px;
+}
+.list-toolbar label {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted);
+}
+.list-toolbar select {
+  padding: 7px 10px; border: 1px solid var(--line); background: var(--white);
+  font-size: 13px; color: var(--ink);
+}
+.list-toolbar select:focus { outline: none; border-color: var(--gold); }
+.pager {
+  display: flex; align-items: center; gap: 6px; margin-left: auto;
+}
+.pager button {
+  padding: 6px 12px; border: 1px solid var(--line); background: var(--white);
+  font-size: 12px; color: var(--ink-2); cursor: pointer; transition: all .2s;
+}
+.pager button:hover:not([disabled]) { border-color: var(--gold-deep); color: var(--gold-deep); }
+.pager button[disabled] { opacity: .3; cursor: default; }
+.pager .pager-info { font-size: 12px; color: var(--muted); padding: 0 6px; }
+
+/* ---------- 商品行 ↑↓ 排序按钮 ---------- */
+.sort-btns { display: flex; gap: 4px; }
+.sort-btns button {
+  width: 28px; height: 28px; border: 1px solid var(--line); background: var(--white);
+  font-size: 14px; line-height: 1; cursor: pointer; transition: all .2s; color: var(--ink-2);
+}
+.sort-btns button:hover:not([disabled]) { border-color: var(--gold-deep); color: var(--gold-deep); background: rgba(212,175,55,.06); }
+.sort-btns button[disabled] { opacity: .25; cursor: default; }
+
+/* ---------- Hero 分类选择器（每系列一个下拉） ---------- */
+.hero-cats { display: flex; flex-direction: column; gap: 12px; }
+.hero-cat-row {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.hero-cat-row .cat-label {
+  min-width: 110px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted);
+}
+.hero-cat-row select {
+  flex: 1; min-width: 200px; padding: 9px 12px; border: 1px solid var(--line);
+  background: var(--white); font-size: 13px; color: var(--ink);
+}
+.hero-cat-row select:focus { outline: none; border-color: var(--gold); }

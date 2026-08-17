@@ -57,7 +57,7 @@
       <a href="#statsPanel">♖ Server Monitor</a>
       <a href="#usersPanel">♚ Test Accounts</a>
       <a href="#activityPanel">♝ Activity Logs</a>
-      <a href="#heroPanel">♕ Hero Product</a>
+      <a href="#heroPanel">♕ Hero Products</a>
       <a href="#productsGrid">♜ Products</a>
       <a href="#slidesPanel">♞ Home Carousel</a>
       <a href="#settingsPanel">♛ Site Settings</a>
@@ -167,18 +167,15 @@
       </div>
     </section>
 
-    <!-- Hero product（主推款：全局唯一，前台置顶展示） -->
+    <!-- Hero products（各系列主推款：每系列一个，前台分类内置顶展示） -->
     <section class="panel admin-hero-panel" id="heroPanel">
       <div class="panel-head">
-        <h2>♕ Hero Product</h2>
+        <h2>♕ Hero Products</h2>
         <button class="btn btn-small btn-ghost" type="button" id="heroRefreshBtn">Refresh ⟳</button>
       </div>
-      <p class="hero-hint">Pick exactly one product as the current hero — it is pinned to the top of the home Featured block and the first slot of the product overview. Choosing a new hero automatically replaces the previous one.</p>
-      <div class="hero-row">
-        <label>Current hero
-          <select id="heroSelect"></select>
-        </label>
-        <button class="btn btn-small btn-ghost" type="button" id="heroClearBtn">Clear Hero</button>
+      <p class="hero-hint">Select one hero product per series. Each hero is pinned to the top of its category on the homepage Featured block and the product overview page.</p>
+      <div class="hero-cats" id="heroCats">
+        <!-- Rendered by JS: one dropdown per category -->
       </div>
       <p class="form-msg" id="heroMsg"></p>
     </section>
@@ -262,7 +259,7 @@
         <div class="form-row form-row-ops">
           <label class="check-label">Featured as Hero
             <input type="checkbox" id="pHero" />
-            <span class="field-hint">选中后首页与商品页置顶展示，并替换当前主推款</span>
+            <span class="field-hint">选中后作为本系列主推款，首页与分类内置顶展示</span>
           </label>
           <label>Series Sort Weight
             <input type="number" id="pWeight" step="1" placeholder="Auto (newest first)" />
@@ -296,18 +293,41 @@
           <h2>♜ Products <span class="count" id="productCount"></span></h2>
           <button class="btn btn-small btn-ghost" type="button" id="refreshBtn">Refresh ⟳</button>
         </div>
+        <!-- Toolbar: category filter + pagination -->
+        <div class="list-toolbar">
+          <label>Category
+            <select id="listCatFilter">
+              <option value="">All</option>
+              <option value="chess-clock">Chess Clock</option>
+              <option value="chess-board">Chess Board</option>
+              <option value="stopwatch">Stopwatch</option>
+              <option value="lifestyle">Chess Lifestyle</option>
+            </select>
+          </label>
+          <label>Per page
+            <select id="listLimit">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+          <div class="pager" id="listPager">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
         <div class="table-wrap">
           <table class="admin-table">
             <thead>
               <tr>
-                <th>ID</th><th>Cover</th><th>Name</th><th>Category</th>
+                <th>Cover</th><th>Name</th><th>Category</th>
                 <th class="th-num">Price</th><th class="th-num">Stock</th>
                 <th class="th-num">Main</th><th class="th-num">Detail</th>
-                <th class="th-num">Size</th><th>Hero</th><th class="th-num">Weight</th><th>Actions</th>
+                <th class="th-num">Size</th><th>Hero</th><th>Order</th><th>Actions</th>
               </tr>
             </thead>
             <tbody id="productRows">
-              <tr><td colspan="12" class="loading">Loading…</td></tr>
+              <tr><td colspan="11" class="loading">Loading…</td></tr>
             </tbody>
           </table>
         </div>

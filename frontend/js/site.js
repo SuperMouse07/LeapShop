@@ -6,7 +6,7 @@
  * 商品信息经 store.js 从后端拉取（模块级缓存，仅拉一次）。
  */
 import { fetchProducts, fetchSettings, escapeHtml } from './store.js';
-import { isLoggedIn, currentUser, logout, roleLabel, logActivity } from './auth.js';
+import { currentUser, logActivity } from './auth.js';
 
 const KEY = 'pf_cart';
 const PAGE = document.body.dataset.page || 'home';
@@ -34,7 +34,6 @@ document.body.insertAdjacentHTML('afterbegin', `
         ${NAV.map(([file, key, label]) =>
           `<a href="${file}" class="${key === activeKey ? 'is-active' : ''}">${label}</a>`).join('')}
       </nav>
-      <span class="nav-auth-slot" id="navAuthSlot"></span>
       <button class="nav-cart" id="cartBtn" aria-label="Open cart">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" aria-hidden="true">
           <path d="M6 7h12l1 14H5L6 7z" /><path d="M9 7a3 3 0 0 1 6 0" />
@@ -47,27 +46,7 @@ document.body.insertAdjacentHTML('afterbegin', `
     </div>
   </header>`);
 
-/* ---------- 导航栏用户状态 ---------- */
-(function renderNavAuth() {
-  const slot = document.getElementById('navAuthSlot');
-  if (!slot) return;
-  if (isLoggedIn()) {
-    const user = currentUser();
-    const name = escapeHtml(user.display_name || user.username);
-    const role = escapeHtml(roleLabel());
-    slot.innerHTML = `
-      <span class="nav-user-badge" title="${role}">♟ ${name}</span>
-      <a href="#" class="nav-auth-logout" id="navLogoutBtn" title="Sign out">✕</a>
-    `;
-    slot.querySelector('#navLogoutBtn')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      logout('login.html');
-    });
-  } else {
-    slot.innerHTML = `<a href="login.html" class="nav-auth-signin">Sign In</a>`;
-  }
-})();
-
+/* ---------- 购物车抽屉 / 遮罩 ---------- */
 document.body.insertAdjacentHTML('beforeend', `
   <div class="overlay" id="overlay"></div>
   <aside class="drawer" id="drawer" aria-label="Shopping cart">

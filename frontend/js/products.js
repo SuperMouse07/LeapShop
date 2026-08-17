@@ -8,8 +8,8 @@ import { fetchProducts, fetchSettings, escapeHtml, money, withRatios } from './s
 
 const $ = (s) => document.querySelector(s);
 
-const itemHtml = (p, heroId) => {
-  const isHero = heroId !== '' && String(p.id) === heroId;
+const itemHtml = (p, heroIdSet) => {
+  const isHero = heroIdSet.has(String(p.id));
   return `
   <a class="m-item${isHero ? ' is-hero' : ''}" href="product.html?id=${p.id}" aria-label="${escapeHtml(p.name)}">
     ${isHero ? '<span class="hero-badge">♕ Hero</span>' : ''}
@@ -22,20 +22,16 @@ const itemHtml = (p, heroId) => {
 };
 
 Promise.all([fetchProducts(), fetchSettings().catch(() => ({}))]).then(([products, settings]) => {
-  const heroId = String(settings.hero_product_id || '');
-  const hero = heroId ? products.find((p) => String(p.id) === heroId) : null;
-  // 主推款固定在第一行第一位：其所属系列整块置顶，且主推款排在该系列首位
-  // 系列内其余顺序沿用后端排序（人工权重升序 → 上传时间倒序）
+  const heroIds = settings.hero_products || [];
+  const heroIdSet = new Set(heroIds.map(String));
+  // 有 hero 的分类整块置顶；系列内后端已排序（hero 置顶 + 权重/时间序）
   const cats = [...CATS].sort((a, b) => {
-    const ha = hero && hero.category === a.id ? 1 : 0;
-    const hb = hero && hero.category === b.id ? 1 : 0;
+    const ha = products.some((p) => p.category === a.id && heroIdSet.has(String(p.id))) ? 1 : 0;
+    const hb = products.some((p) => p.category === b.id && heroIdSet.has(String(p.id))) ? 1 : 0;
     return hb - ha;
   });
   $('#ovSecs').innerHTML = cats.map((c) => {
     let list = products.filter((p) => p.category === c.id);
-    if (hero && hero.category === c.id) {
-      list = [hero, ...list.filter((p) => p.id !== hero.id)];
-    }
     list = withRatios(list);
     const meta = CAT_META[c.id];
     return `
@@ -45,7 +41,7 @@ Promise.all([fetchProducts(), fetchSettings().catch(() => ({}))]).then(([product
         <h3>${escapeHtml(meta.title)}</h3>
         <span class="ov-count">${list.length} Items</span>
       </div>
-      <div class="masonry">${list.map((p) => itemHtml(p, heroId)).join('')}</div>
+      <div class="masonry">${list.map((p) => itemHtml(p, heroIdSet)).join('')}</div>
     </section>`;
   }).join('');
 }).catch(() => {

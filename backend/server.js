@@ -425,15 +425,58 @@ app.get('/api/activity', authRequired, adminOnly, async (req, res) => {
 
 /* ---------------- 商品接口 ---------------- */
 // 列表（公开，可按分类过滤；排序：人工权重升序 → 上传时间倒序）
+/** 从 settings 表读取 hero_products JSON 数组（各系列主推款 ID 列表） */
+async function getHeroIds() {
+  const rows = await db.query("SELECT value FROM settings WHERE key = 'hero_products'");
+  if (!rows[0]) return [];
+  try {
+    const arr = JSON.parse(rows[0].value || '[]');
+    return Array.isArray(arr) ? arr.map(String) : [];
+  } catch { return []; }
+}
+
+/** 将商品列表按分类分组，分类内 hero 置顶，分类顺序保持首次出现顺序 */
+function pinHeroesByCategory(products, heroIds) {
+  if (!heroIds.length) return products;
+  const heroSet = new Set(heroIds);
+  const catOrder = [];
+  const catMap = {};
+  for (const p of products) {
+    if (!catMap[p.category]) { catMap[p.category] = []; catOrder.push(p.category); }
+    catMap[p.category].push(p);
+  }
+  const result = [];
+  for (const cat of catOrder) {
+    const list = catMap[cat];
+    const heroes = list.filter((p) => heroSet.has(String(p.id)));
+    const rest = list.filter((p) => !heroSet.has(String(p.id)));
+    result.push(...heroes, ...rest);
+  }
+  return result;
+}
+
 app.get('/api/products', async (req, res) => {
-  const { category } = req.query;
+  const { category, page, limit } = req.query;
+  const heroIds = await getHeroIds();
   let rows;
   if (category) {
     rows = await db.query(`SELECT * FROM products WHERE category = ? ${PRODUCTS_ORDER}`, [category]);
   } else {
     rows = await db.query(`SELECT * FROM products ${PRODUCTS_ORDER}`);
   }
-  res.json({ products: rows.map(parseProduct) });
+  // 分类内 hero 置顶（分类顺序保持原序）
+  let products = pinHeroesByCategory(rows.map(parseProduct), heroIds);
+
+  const usePaging = limit !== undefined && limit !== '';
+  if (usePaging) {
+    const total = products.length;
+    const pageNum = Math.max(1, Number(page) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(limit) || 25));
+    const start = (pageNum - 1) * pageSize;
+    res.json({ products: products.slice(start, start + pageSize), total, page: pageNum, limit: pageSize });
+  } else {
+    res.json({ products });
+  }
 });
 
 // 详情（公开）
@@ -551,9 +594,12 @@ app.delete('/api/products/:id', authRequired, editorOnly, async (req, res) => {
   const deleted = parseProduct(exist[0]);
   const urls = productUploadUrls(deleted);
   await db.run('DELETE FROM products WHERE id = ?', [req.params.id]);
-  const heroRows = await db.query("SELECT value FROM settings WHERE key = 'hero_product_id'");
-  if (heroRows[0] && String(heroRows[0].value) === String(req.params.id)) {
-    await upsertSetting('hero_product_id', ''); // 重置为无主推（settings 单键 upsert 天然幂等）
+  // 若删的是某个系列的主推款，从 hero_products 数组中移除
+  const heroIds = await getHeroIds();
+  const deletedIdStr = String(req.params.id);
+  if (heroIds.includes(deletedIdStr)) {
+    const newHeroIds = heroIds.filter((id) => id !== deletedIdStr);
+    await upsertSetting('hero_products', JSON.stringify(newHeroIds));
   }
   await removeUnreferenced(urls);
   // 审计日志：记录被删商品的名称与关键属性
@@ -649,7 +695,7 @@ app.delete('/api/slides/:id', authRequired, editorOnly, async (req, res) => {
 });
 
 /* ---------------- 全站设置（settings 表） ---------------- */
-const SETTINGS_KEYS = ['site_title', 'logo_url', 'announcement_html', 'contact_email', 'contact_social', 'hero_product_id'];
+const SETTINGS_KEYS = ['site_title', 'logo_url', 'announcement_html', 'contact_email', 'contact_social', 'hero_products'];
 
 /** settings 表 upsert（双方言兼容：PG 不能用 db.run，其会自动追加 RETURNING id） */
 async function upsertSetting(key, value) {
@@ -668,6 +714,12 @@ app.get('/api/settings', async (req, res) => {
   const rows = await db.query('SELECT key, value FROM settings');
   const settings = {};
   for (const r of rows) settings[r.key] = r.value;
+  // hero_products 从 JSON 字符串解析为数组，便于前端直接使用
+  if (settings.hero_products !== undefined) {
+    try { settings.hero_products = JSON.parse(settings.hero_products || '[]'); } catch { settings.hero_products = []; }
+  } else {
+    settings.hero_products = [];
+  }
   res.json({ settings });
 });
 
@@ -683,14 +735,26 @@ app.put('/api/settings', authRequired, editorOnly, async (req, res) => {
   if (Buffer.byteLength(value, 'utf8') > 64 * 1024) {
     return res.status(400).json({ error: 'Setting value too large' });
   }
-  if (key === 'hero_product_id' && value !== '') {
-    // 主推款唯一性：单键 upsert 天然保证同一时间只有一个；仅允许指向真实存在的商品
-    if (!/^\d+$/.test(value)) {
-      return res.status(400).json({ error: 'hero_product_id must be a product id or empty' });
+  if (key === 'hero_products') {
+    // hero_products 必须是 JSON 数组，元素为真实存在的商品 ID（字符串形式）
+    let arr;
+    try { arr = JSON.parse(value); } catch {
+      return res.status(400).json({ error: 'hero_products must be a valid JSON array' });
     }
-    const rows = await db.query('SELECT id FROM products WHERE id = ?', [Number(value)]);
-    if (!rows[0]) {
-      return res.status(400).json({ error: 'Product not found for hero setting' });
+    if (!Array.isArray(arr)) {
+      return res.status(400).json({ error: 'hero_products must be a JSON array' });
+    }
+    if (arr.length > 4) {
+      return res.status(400).json({ error: 'hero_products can contain at most 4 items' });
+    }
+    for (const pid of arr) {
+      if (!/^\d+$/.test(String(pid))) {
+        return res.status(400).json({ error: `Invalid product id: ${pid}` });
+      }
+      const rows = await db.query('SELECT id FROM products WHERE id = ?', [Number(pid)]);
+      if (!rows[0]) {
+        return res.status(400).json({ error: `Product not found: ${pid}` });
+      }
     }
   }
   // 审计：对比旧值

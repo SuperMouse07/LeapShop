@@ -23,11 +23,10 @@ async function init() {
     $('#catRoot').innerHTML = '<p class="cart-empty">Products are temporarily unavailable ♟</p>';
     return;
   }
-  // 主推款在本分类时置顶（其余顺序沿用后端：人工权重升序 → 上传时间倒序）
-  const heroId = String(settings.hero_product_id || '');
-  const hero = heroId ? all.find((p) => String(p.id) === heroId && p.category === cat) : null;
+  // 本分类的主推款置顶（后端已排好序，hero 在分类内第一位）
+  const heroIds = settings.hero_products || [];
+  const heroIdSet = new Set(heroIds.map(String));
   let list = all.filter((p) => p.category === cat);
-  if (hero) list = [hero, ...list.filter((p) => p.id !== hero.id)];
   list = withRatios(list);
 
   $('#catRoot').innerHTML = `
@@ -46,7 +45,7 @@ async function init() {
       </div>
       <div class="masonry">
         ${list.map((p) => {
-          const isHero = hero && p.id === hero.id;
+          const isHero = heroIdSet.has(String(p.id));
           return `
           <a class="m-item reveal${isHero ? ' is-hero' : ''}" href="product.html?id=${p.id}" aria-label="${escapeHtml(p.name)}">
             ${isHero ? '<span class="hero-badge">♕ Hero</span>' : ''}

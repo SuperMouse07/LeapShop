@@ -38,16 +38,23 @@ async function initCarousel() {
   startAuto();
 }
 
-/* ---------- Featured：主推款置顶 + 四系列代表品交错卡（主推卡跳转商品详情页） ---------- */
-function renderFeatured(products, heroId) {
-  const hero = heroId ? products.find((p) => String(p.id) === String(heroId)) : null;
-  let featured = CATS
-    .map((c) => products.find((p) => p.category === c.id && (!hero || p.id !== hero.id)))
-    .filter(Boolean);
-  if (hero) featured = [hero, ...featured].slice(0, CATS.length);
+/* ---------- Featured：各系列主推款（hero_products）+ 四系列代表品交错卡 ---------- */
+function renderFeatured(products, heroIds) {
+  // heroIds: 各系列主推款 ID 数组（每系列最多一个）
+  const heroIdSet = new Set((heroIds || []).map(String));
+  const heroes = products.filter((p) => heroIdSet.has(String(p.id)));
+  // 补充非 hero 的分类代表品，凑满 CATS.length 张卡
+  let featured = [...heroes];
+  for (const c of CATS) {
+    if (featured.length >= CATS.length) break;
+    if (featured.some((p) => p.category === c.id)) continue;
+    const rep = products.find((p) => p.category === c.id && !heroIdSet.has(String(p.id)));
+    if (rep) featured.push(rep);
+  }
+  featured = featured.slice(0, CATS.length);
   $('#featGrid').innerHTML = featured.map((p) => {
     const meta = CAT_META[p.category] || { file: `product.html?id=${p.id}`, title: p.category };
-    const isHero = Boolean(hero && p.id === hero.id);
+    const isHero = heroIdSet.has(String(p.id));
     const link = isHero ? `product.html?id=${p.id}` : meta.file;
     return `
     <article class="p-card reveal${isHero ? ' is-hero' : ''}">
@@ -83,7 +90,7 @@ $('#heritage').innerHTML = HERITAGE.map((t) => `<p>${escapeHtml(t)}</p>`).join('
 
 initCarousel();
 Promise.all([fetchProducts(), fetchSettings().catch(() => ({}))])
-  .then(([products, settings]) => renderFeatured(products, settings.hero_product_id))
+  .then(([products, settings]) => renderFeatured(products, settings.hero_products || []))
   .catch(() => {
     $('#featGrid').innerHTML = '<p class="cart-empty">Products are temporarily unavailable ♟</p>';
   })
