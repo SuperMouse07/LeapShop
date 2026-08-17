@@ -38,9 +38,9 @@ async function initCarousel() {
   startAuto();
 }
 
-/* ---------- Featured：各系列主推款（hero_products）+ 四系列代表品交错卡 ---------- */
+/* ---------- Featured：主推款（hero_products，按 sort_weight 自由排序）+ 系列代表品补足四卡 ---------- */
 function renderFeatured(products, heroIds) {
-  // heroIds: 各系列主推款 ID 数组（每系列最多一个）
+  // heroIds: 主推款 ID 数组（不与系列绑定；顺序即商品列表顺序）
   const heroIdSet = new Set((heroIds || []).map(String));
   const heroes = products.filter((p) => heroIdSet.has(String(p.id)));
   // 补充非 hero 的分类代表品，凑满 CATS.length 张卡
@@ -58,13 +58,12 @@ function renderFeatured(products, heroIds) {
     const link = isHero ? `product.html?id=${p.id}` : meta.file;
     return `
     <article class="p-card reveal${isHero ? ' is-hero' : ''}">
-      ${isHero ? '<span class="hero-badge">♕ Hero</span>' : ''}
       <a class="p-media" href="${link}" aria-label="${escapeHtml(p.name)}">
         <img src="${p.img}" alt="${escapeHtml(p.name)}" loading="lazy">
       </a>
       <p class="p-cat">${escapeHtml(meta.title)}</p>
       <h3 class="p-name">${escapeHtml(p.name)}</h3>
-      <p class="p-desc">${escapeHtml(p.description)}</p>
+      ${isHero ? '' : `<p class="p-desc">${escapeHtml(p.description)}</p>`}
       <div class="p-foot">
         <span class="p-price"><small>USD</small>${money(p.price)}</span>
         <a class="link-more" href="${link}"><span>Learn More</span><span class="arr">→</span></a>

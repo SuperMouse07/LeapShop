@@ -250,67 +250,14 @@ $('settingsForm').addEventListener('submit', async (e) => {
   }
 });
 
-/* ---------- 主推款（Hero Products：settings.hero_products，每系列一个） ---------- */
-let heroIds = [];         // 当前各系列主推款 id 数组
-let heroProducts = [];    // 供下拉选择的全量商品
+/* ---------- 主推款（Hero Products：settings.hero_products，自由排序、不与系列绑定） ---------- */
+let heroIds = [];         // 当前主推款 id 数组
 
-function setHeroMsg(text, ok = true) {
-  const el = $('heroMsg');
-  el.textContent = text || '';
-  el.className = `form-msg${text && !ok ? ' err' : ''}`;
+/** 保存 hero_products 数组到后端（Set/Clear 与表单勾选共用） */
+async function saveHeroIds(newIds) {
+  await api('/settings', { method: 'PUT', body: JSON.stringify({ key: 'hero_products', value: JSON.stringify(newIds) }) });
+  heroIds = newIds;
 }
-
-/** 渲染各分类的 hero 下拉选择器 */
-function renderHeroCats() {
-  const container = $('heroCats');
-  container.innerHTML = KNOWN_CATS.map((cat) => {
-    const catProducts = heroProducts.filter((p) => p.category === cat);
-    const currentHeroId = heroIds.find((id) => {
-      const p = heroProducts.find((x) => String(x.id) === String(id));
-      return p && p.category === cat;
-    }) || '';
-    return `
-    <div class="hero-cat-row" data-cat="${cat}">
-      <span class="cat-label">${CAT_LABEL[cat]}</span>
-      <select data-hero-cat="${cat}">
-        <option value="">— No hero —</option>
-        ${catProducts.map((p) => `<option value="${p.id}" ${String(p.id) === String(currentHeroId) ? 'selected' : ''}>#${p.id} · ${escapeHtml(p.name)}</option>`).join('')}
-      </select>
-    </div>`;
-  }).join('');
-}
-
-/** 保存 hero_products 数组到后端 */
-async function saveHeroIds(newIds, silent = false) {
-  try {
-    await api('/settings', { method: 'PUT', body: JSON.stringify({ key: 'hero_products', value: JSON.stringify(newIds) }) });
-    heroIds = newIds;
-    if (!silent) setHeroMsg('Hero products updated ✓');
-    loadList();
-  } catch (err) {
-    setHeroMsg(err.message || 'Save hero failed', false);
-  }
-}
-
-/** 分类下拉变更 → 更新该分类的 hero */
-$('heroCats').addEventListener('change', (e) => {
-  const sel = e.target.closest('[data-hero-cat]');
-  if (!sel) return;
-  const cat = sel.dataset.heroCat;
-  const newId = sel.value;
-  // 移除该分类的旧 hero，加入新的
-  let updated = heroIds.filter((id) => {
-    const p = heroProducts.find((x) => String(x.id) === String(id));
-    return !(p && p.category === cat);
-  });
-  if (newId) updated.push(String(newId));
-  saveHeroIds(updated);
-});
-
-$('heroRefreshBtn').addEventListener('click', async () => {
-  await loadList();
-  setHeroMsg('');
-});
 
 /* ---------- 隐蔽快捷入口：2 秒内连敲 5 次空格 → 前台首页 ---------- */
 const spaceStamps = [];
@@ -463,14 +410,11 @@ async function loadList() {
   try {
     const params = new URLSearchParams({ page: currentPage, limit });
     if (catFilter) params.set('category', catFilter);
-    const [{ products, total, page, limit: pageSize }, { settings }, allResp] = await Promise.all([
+    const [{ products, total, page, limit: pageSize }, { settings }] = await Promise.all([
       api(`/products?${params}`),
       api('/settings'),
-      api('/products'),  // 全量商品供 hero 面板下拉
     ]);
     heroIds = settings.hero_products || [];
-    heroProducts = allResp.products;
-    renderHeroCats();
     $('productCount').textContent = `${total} item(s)`;
 
     // 渲染分页控件
@@ -596,7 +540,6 @@ function fillForm(p) {
   $('pPrice').value = p.price;
   $('pStock').value = p.stock ?? '';
   $('pHero').checked = heroIds.includes(String(p.id));
-  $('pWeight').value = p.sort_weight ?? '';
   $('pDesc').value = p.description || '';
   $('pInfo').value = (p.info || []).join('\n');
   pendingImages = [...(p.images || [])];
@@ -695,7 +638,7 @@ $('productForm').addEventListener('submit', async (e) => {
     info: $('pInfo').value.split('\n').map((s) => s.trim()).filter(Boolean),
     images: pendingImages,
     details: pendingDetails,
-    sort_weight: $('pWeight').value.trim() === '' ? null : Number($('pWeight').value),
+    // sort_weight 不在表单提交：排序统一由列表页 ↑↓ 按钮维护（未传字段后端保留旧值）
     // variants 不在新界面展示，编辑时不提交以保留旧值
   };
   try {
@@ -718,9 +661,9 @@ $('productForm').addEventListener('submit', async (e) => {
     const savedIdStr = String(savedId);
     const isInHero = heroIds.includes(savedIdStr);
     if (wantHero && !isInHero) {
-      await saveHeroIds([...heroIds, savedIdStr], true);
+      await saveHeroIds([...heroIds, savedIdStr]);
     } else if (!wantHero && isInHero) {
-      await saveHeroIds(heroIds.filter((id) => id !== savedIdStr), true);
+      await saveHeroIds(heroIds.filter((hid) => hid !== savedIdStr));
     }
     resetForm();
     loadList();
@@ -742,12 +685,17 @@ $('productRows').addEventListener('click', async (e) => {
   const product = products.find((p) => String(p.id) === id);
 
   // Hero Set/Clear：操作 hero_products 数组
-  if (btn.dataset.act === 'hero') {
-    if (!heroIds.includes(id)) await saveHeroIds([...heroIds, id]);
-    return;
-  }
-  if (btn.dataset.act === 'unhero') {
-    await saveHeroIds(heroIds.filter((x) => x !== id));
+  if (btn.dataset.act === 'hero' || btn.dataset.act === 'unhero') {
+    try {
+      if (btn.dataset.act === 'hero') {
+        if (!heroIds.includes(id)) await saveHeroIds([...heroIds, id]);
+      } else {
+        await saveHeroIds(heroIds.filter((x) => x !== id));
+      }
+      await loadList();
+    } catch (err) {
+      alert(`Hero update failed: ${err.message}`);
+    }
     return;
   }
 

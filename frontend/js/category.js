@@ -4,7 +4,7 @@
  * 商品数据来自后端 /api/products?category=。
  */
 import { CAT_META } from './data.js';
-import { fetchProducts, fetchSettings, escapeHtml, money, withRatios, PLACEHOLDER } from './store.js';
+import { fetchProducts, escapeHtml, money, withRatios, PLACEHOLDER } from './store.js';
 
 const $ = (s) => document.querySelector(s);
 const cat = document.body.dataset.cat;
@@ -15,17 +15,12 @@ async function init() {
     $('#catRoot').innerHTML = '<p class="cart-empty">Series not found ♟</p>';
     return;
   }
-  const [all, settings] = await Promise.all([
-    fetchProducts().catch(() => null),
-    fetchSettings().catch(() => ({})),
-  ]);
+  const all = await fetchProducts().catch(() => null);
   if (all === null) {
     $('#catRoot').innerHTML = '<p class="cart-empty">Products are temporarily unavailable ♟</p>';
     return;
   }
-  // 本分类的主推款置顶（后端已排好序，hero 在分类内第一位）
-  const heroIds = settings.hero_products || [];
-  const heroIdSet = new Set(heroIds.map(String));
+  // 系列内顺序沿用后端排序（sort_weight 升序 → 上传时间倒序）
   let list = all.filter((p) => p.category === cat);
   list = withRatios(list);
 
@@ -44,18 +39,14 @@ async function init() {
         <span class="ov-count">${list.length} Items</span>
       </div>
       <div class="masonry">
-        ${list.map((p) => {
-          const isHero = heroIdSet.has(String(p.id));
-          return `
-          <a class="m-item reveal${isHero ? ' is-hero' : ''}" href="product.html?id=${p.id}" aria-label="${escapeHtml(p.name)}">
-            ${isHero ? '<span class="hero-badge">♕ Hero</span>' : ''}
+        ${list.map((p) => `
+          <a class="m-item reveal" href="product.html?id=${p.id}" aria-label="${escapeHtml(p.name)}">
             <span class="p-media" style="aspect-ratio:${p.ratio};">
               <img src="${p.img || PLACEHOLDER}" alt="${escapeHtml(p.name)}" loading="lazy">
             </span>
-            <span class="m-name">${escapeHtml(p.name)}</span>
+            <span class="m-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
             <span class="m-meta"><span>${escapeHtml(p.description.slice(0, 18))}…</span><span class="price">${money(p.price)}</span></span>
-          </a>`;
-        }).join('')}
+          </a>`).join('')}
       </div>
     </div>
   </section>`;

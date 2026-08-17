@@ -12,11 +12,10 @@ const itemHtml = (p, heroIdSet) => {
   const isHero = heroIdSet.has(String(p.id));
   return `
   <a class="m-item${isHero ? ' is-hero' : ''}" href="product.html?id=${p.id}" aria-label="${escapeHtml(p.name)}">
-    ${isHero ? '<span class="hero-badge">♕ Hero</span>' : ''}
     <span class="p-media" style="aspect-ratio:${p.ratio};">
       <img src="${p.img}" alt="${escapeHtml(p.name)}" loading="lazy">
     </span>
-    <span class="m-name">${escapeHtml(p.name)}</span>
+    <span class="m-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
     <span class="m-meta"><span>${escapeHtml(p.description.slice(0, 18))}…</span><span class="price">${money(p.price)}</span></span>
   </a>`;
 };
@@ -24,13 +23,8 @@ const itemHtml = (p, heroIdSet) => {
 Promise.all([fetchProducts(), fetchSettings().catch(() => ({}))]).then(([products, settings]) => {
   const heroIds = settings.hero_products || [];
   const heroIdSet = new Set(heroIds.map(String));
-  // 有 hero 的分类整块置顶；系列内后端已排序（hero 置顶 + 权重/时间序）
-  const cats = [...CATS].sort((a, b) => {
-    const ha = products.some((p) => p.category === a.id && heroIdSet.has(String(p.id))) ? 1 : 0;
-    const hb = products.some((p) => p.category === b.id && heroIdSet.has(String(p.id))) ? 1 : 0;
-    return hb - ha;
-  });
-  $('#ovSecs').innerHTML = cats.map((c) => {
+  // 系列区块按固定顺序；系列内顺序沿用后端排序（sort_weight 升序 → 上传时间倒序）
+  $('#ovSecs').innerHTML = CATS.map((c) => {
     let list = products.filter((p) => p.category === c.id);
     list = withRatios(list);
     const meta = CAT_META[c.id];

@@ -6,6 +6,7 @@
  */
 import { CAT_META } from './data.js';
 import { fetchProduct, escapeHtml, money, PLACEHOLDER } from './store.js';
+import { renderMarkdown } from './markdown.js';
 
 const $ = (s) => document.querySelector(s);
 const id = +new URLSearchParams(location.search).get('id');
@@ -177,7 +178,8 @@ async function init() {
         <a class="link-more" href="${meta.file}"><span>← ${escapeHtml(meta.title)}</span></a>
       </p>
       <div class="pd-grid">
-        <div>
+        <div class="pd-media">
+          ${main.length > 1 ? '<p class="pd-swipe-hint">← Swipe · Main images 1:1 →</p>' : ''}
           <div class="pd-gallery">
             <div class="pd-main" id="pdMain" aria-label="Main images (swipe)">
               ${main.map((src) => `<img src="${src}" alt="${escapeHtml(p.name)} main image">`).join('')}
@@ -186,7 +188,6 @@ async function init() {
             <button class="pd-arrow pd-prev" id="pdPrev" aria-label="Previous image">‹</button>
             <button class="pd-arrow pd-next" id="pdNext" aria-label="Next image">›</button>` : ''}
           </div>
-          ${main.length > 1 ? '<p class="pd-swipe-hint">← Swipe · Main images 1:1 →</p>' : ''}
           <div class="pd-detail">
             ${detail.map((src) => `<img src="${src}" alt="${escapeHtml(p.name)} detail image" loading="lazy">`).join('')}
           </div>
@@ -206,7 +207,7 @@ async function init() {
           </div>
           <div class="pd-block2">
             <h3 class="micro-label left solo">Product Information</h3>
-            ${(p.info || []).map((t) => `<p>${escapeHtml(t)}</p>`).join('')}
+            ${renderMarkdown((p.info || []).join('\n'))}
           </div>
         </div>
       </div>

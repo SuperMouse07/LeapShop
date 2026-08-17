@@ -57,7 +57,6 @@
       <a href="#statsPanel">♖ Server Monitor</a>
       <a href="#usersPanel">♚ Test Accounts</a>
       <a href="#activityPanel">♝ Activity Logs</a>
-      <a href="#heroPanel">♕ Hero Products</a>
       <a href="#productsGrid">♜ Products</a>
       <a href="#slidesPanel">♞ Home Carousel</a>
       <a href="#settingsPanel">♛ Site Settings</a>
@@ -167,19 +166,6 @@
       </div>
     </section>
 
-    <!-- Hero products（各系列主推款：每系列一个，前台分类内置顶展示） -->
-    <section class="panel admin-hero-panel" id="heroPanel">
-      <div class="panel-head">
-        <h2>♕ Hero Products</h2>
-        <button class="btn btn-small btn-ghost" type="button" id="heroRefreshBtn">Refresh ⟳</button>
-      </div>
-      <p class="hero-hint">Select one hero product per series. Each hero is pinned to the top of its category on the homepage Featured block and the product overview page.</p>
-      <div class="hero-cats" id="heroCats">
-        <!-- Rendered by JS: one dropdown per category -->
-      </div>
-      <p class="form-msg" id="heroMsg"></p>
-    </section>
-
     <!-- Site settings -->
     <section class="panel admin-settings" id="settingsPanel">
       <div class="panel-head">
@@ -259,11 +245,7 @@
         <div class="form-row form-row-ops">
           <label class="check-label">Featured as Hero
             <input type="checkbox" id="pHero" />
-            <span class="field-hint">选中后作为本系列主推款，首页与分类内置顶展示</span>
-          </label>
-          <label>Series Sort Weight
-            <input type="number" id="pWeight" step="1" placeholder="Auto (newest first)" />
-            <span class="field-hint">系列内排序：数字越小越靠前；留空按上传时间倒序</span>
+            <span class="field-hint">选中后加入首页主推款；展示顺序在下方商品列表用 ↑↓ 调整</span>
           </label>
         </div>
         <label>Description

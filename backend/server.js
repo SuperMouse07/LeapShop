@@ -425,7 +425,7 @@ app.get('/api/activity', authRequired, adminOnly, async (req, res) => {
 
 /* ---------------- 商品接口 ---------------- */
 // 列表（公开，可按分类过滤；排序：人工权重升序 → 上传时间倒序）
-/** 从 settings 表读取 hero_products JSON 数组（各系列主推款 ID 列表） */
+/** 从 settings 表读取 hero_products JSON 数组（主推款 ID 列表，自由排序、不与分类绑定） */
 async function getHeroIds() {
   const rows = await db.query("SELECT value FROM settings WHERE key = 'hero_products'");
   if (!rows[0]) return [];
@@ -435,37 +435,16 @@ async function getHeroIds() {
   } catch { return []; }
 }
 
-/** 将商品列表按分类分组，分类内 hero 置顶，分类顺序保持首次出现顺序 */
-function pinHeroesByCategory(products, heroIds) {
-  if (!heroIds.length) return products;
-  const heroSet = new Set(heroIds);
-  const catOrder = [];
-  const catMap = {};
-  for (const p of products) {
-    if (!catMap[p.category]) { catMap[p.category] = []; catOrder.push(p.category); }
-    catMap[p.category].push(p);
-  }
-  const result = [];
-  for (const cat of catOrder) {
-    const list = catMap[cat];
-    const heroes = list.filter((p) => heroSet.has(String(p.id)));
-    const rest = list.filter((p) => !heroSet.has(String(p.id)));
-    result.push(...heroes, ...rest);
-  }
-  return result;
-}
-
 app.get('/api/products', async (req, res) => {
   const { category, page, limit } = req.query;
-  const heroIds = await getHeroIds();
   let rows;
   if (category) {
     rows = await db.query(`SELECT * FROM products WHERE category = ? ${PRODUCTS_ORDER}`, [category]);
   } else {
     rows = await db.query(`SELECT * FROM products ${PRODUCTS_ORDER}`);
   }
-  // 分类内 hero 置顶（分类顺序保持原序）
-  let products = pinHeroesByCategory(rows.map(parseProduct), heroIds);
+  // 排序完全由 sort_weight / created_at 决定（主推款顺序即列表顺序，后台 ↑↓ 调整）
+  const products = rows.map(parseProduct);
 
   const usePaging = limit !== undefined && limit !== '';
   if (usePaging) {

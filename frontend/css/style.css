@@ -251,7 +251,10 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 .masonry { columns: 3; column-gap: 30px; }
 .m-item { display: block; break-inside: avoid; margin: 0 0 34px; }
 .m-item .p-media { aspect-ratio: auto; }   /* 比例由内联 style 指定，形成瀑布节奏 */
-.m-name { font-family: var(--serif); font-size: 18px; font-weight: 500; margin-top: 12px; }
+.m-name {
+  display: block; font-family: var(--serif); font-size: 18px; font-weight: 500; margin-top: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;   /* 过长名称截断为 …，悬浮 title 显示完整名称 */
+}
 .m-meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 4px; font-size: 13px; color: var(--muted); }
 .m-meta .price { color: var(--gold-deep); font-family: var(--serif); }
 .ov-sec { margin-bottom: 88px; }
@@ -350,16 +353,24 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 /* ---------- 商品详情页 ---------- */
 .pd-wrap { padding: 52px 0 var(--sec); }
 .pd-crumb { margin-bottom: 30px; }
-.pd-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: start; }
+/* 双栏独立滚动：左栏图片区可上下滚动，右栏信息区随视口固定（各自 overflow 滚动） */
+.pd-grid {
+  display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px;
+  align-items: stretch; height: calc(100vh - 168px); min-height: 460px;
+}
+.pd-media, .pd-info { min-width: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.pd-media { padding-right: 12px; }
+.pd-media::-webkit-scrollbar, .pd-info::-webkit-scrollbar { width: 5px; }
+.pd-media::-webkit-scrollbar-thumb, .pd-info::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 .pd-main {
   display: flex; gap: 12px; overflow-x: auto;
-  scroll-snap-type: x mandatory; padding-bottom: 10px;
+  scroll-snap-type: x mandatory; padding-bottom: 0;
 }
 .pd-main img {
   flex: 0 0 100%; aspect-ratio: 1 / 1; object-fit: cover;
   scroll-snap-align: center; border: 1px solid var(--line); background: var(--paper);
 }
-.pd-swipe-hint { font-size: 11px; letter-spacing: .22em; color: var(--muted); text-transform: uppercase; margin: 6px 0 18px; }
+.pd-swipe-hint { font-size: 11px; letter-spacing: .22em; color: var(--muted); text-transform: uppercase; margin: 0 0 12px; }
 
 /* 主图左右切换箭头（绝对定位于滚动容器外层包裹） */
 .pd-gallery { position: relative; }
@@ -375,7 +386,8 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 .pd-arrow[disabled] { opacity: .3; pointer-events: none; }
 .pd-prev { left: 12px; }
 .pd-next { right: 12px; }
-.pd-detail img { width: 100%; border: 1px solid var(--line); margin-top: 12px; }
+/* 详情图与主图无缝衔接：去除间距，相邻图以上一张的底边为分隔，不叠线 */
+.pd-detail img { width: 100%; display: block; border: 1px solid var(--line); border-top: 0; margin-top: 0; }
 
 /* ---------- 悬停放大镜：圆形透镜跟随鼠标 ---------- */
 .pd-main img, .pd-detail img { cursor: zoom-in; }
@@ -421,6 +433,26 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 .pd-block2 { border-top: 1px solid var(--line); padding-top: 26px; }
 .pd-block2 h3 { margin-bottom: 16px; }
 .pd-block2 p { color: var(--ink-2); font-size: 14.5px; margin-bottom: 12px; }
+
+/* ---------- Markdown 渲染（Product Information） ---------- */
+.md p { color: var(--ink-2); font-size: 14.5px; line-height: 1.7; margin-bottom: 12px; }
+.md strong { color: var(--ink); font-weight: 600; }
+.md em { font-style: italic; }
+.md h4, .md h5, .md h6 { font-family: var(--serif); font-weight: 500; color: var(--ink); margin: 18px 0 8px; }
+.md h4 { font-size: 17px; }
+.md h5 { font-size: 15.5px; }
+.md h6 { font-size: 14px; color: var(--ink-2); }
+.md ul, .md ol { margin: 0 0 14px; padding-left: 22px; color: var(--ink-2); font-size: 14.5px; line-height: 1.7; }
+.md ul { list-style: disc; }
+.md ol { list-style: decimal; }
+.md li { margin-bottom: 5px; }
+.md li::marker { color: var(--gold-deep); }
+.md a { color: var(--gold-deep); text-decoration: underline; text-underline-offset: 3px; }
+.md a:hover { color: var(--ink); }
+.md code {
+  font-family: ui-monospace, Consolas, monospace; font-size: 13px;
+  background: var(--paper); border: 1px solid var(--line-soft); border-radius: 3px; padding: 1px 5px;
+}
 
 /* ---------- Footer ---------- */
 .footer { background: var(--paper); border-top: 1px solid var(--line); padding: 56px 0 40px; }
@@ -496,7 +528,9 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
   .why-grid { grid-template-columns: 1fr; gap: 30px; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .masonry { columns: 2; }
-  .pd-grid { grid-template-columns: 1fr; gap: 40px; }
+  /* 窄屏回退：详情页恢复单栏自然滚动 */
+  .pd-grid { grid-template-columns: 1fr; gap: 40px; height: auto; min-height: 0; }
+  .pd-media, .pd-info { overflow: visible; padding-right: 0; }
 }
 @media (max-width: 768px) {
   /* 移动端：箭头默认隐藏，hover/touch 时显现，避免遮挡主图 */
