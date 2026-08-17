@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In · LEAP Internal Testing</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* login.html 独立样式（不污染全局 style.css） */
+    .login-page {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: var(--paper); padding: 40px 28px;
+    }
+    .login-card {
+      width: min(440px, 100%); background: var(--white);
+      border: 1px solid var(--line); border-top: 3px solid var(--gold);
+      padding: 48px 40px; text-align: center;
+    }
+    .login-card .brand { font-family: var(--serif); font-size: 32px; letter-spacing: .18em; color: var(--ink); margin-bottom: 6px; }
+    .login-card .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+    .login-card .phase-badge {
+      display: inline-block; background: var(--gold); color: var(--ink);
+      font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+      padding: 4px 12px; margin-bottom: 20px; font-weight: 600;
+    }
+    .login-card label {
+      display: block; text-align: left; font-size: 11px; letter-spacing: .22em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+    }
+    .login-card input {
+      display: block; width: 100%; margin-top: 6px; padding: 12px 14px;
+      border: 1px solid var(--line); background: var(--paper);
+      font-size: 14px; color: var(--ink); transition: border-color .2s;
+    }
+    .login-card input:focus { outline: none; border-color: var(--gold); background: var(--white); }
+    .login-card .btn { width: 100%; justify-content: center; margin-top: 8px; }
+    .login-card .form-msg { font-size: 13px; margin: 12px 0 0; min-height: 18px; }
+    .login-card .form-msg.error { color: #9A2B1E; }
+    .login-card .form-msg.ok { color: #2E7D32; }
+    .login-hint {
+      margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line);
+      font-size: 12px; color: var(--muted); text-align: left; line-height: 1.8;
+    }
+    .login-hint strong { color: var(--ink-2); }
+    .login-hint code {
+      background: var(--paper); border: 1px solid var(--line-soft);
+      padding: 1px 6px; font-size: 11px; font-family: monospace;
+    }
+    .login-footer { margin-top: 24px; font-size: 11px; color: var(--muted); letter-spacing: .08em; }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <div class="phase-badge">Internal Testing Phase</div>
+      <div class="brand">LEAP</div>
+      <p class="subtitle">Sign in to access the testing environment</p>
+
+      <form id="loginForm" autocomplete="on">
+        <label>Username
+          <input type="text" id="loginUser" autocomplete="username" placeholder="e.g. T001" required />
+        </label>
+        <label>Password
+          <input type="password" id="loginPass" autocomplete="current-password" placeholder="Enter password" required />
+        </label>
+        <p class="form-msg" id="loginMsg"></p>
+        <button class="btn" type="submit" id="loginBtn"><span>Sign In</span></button>
+      </form>
+
+      <div class="login-hint">
+        <strong>Test Accounts:</strong><br>
+        Admin: <code>P001</code> / <code>123456</code><br>
+        Tester: <code>T001</code>–<code>T005</code> / <code>test123</code><br>
+        Observer: <code>D001</code> / <code>demo123</code>
+      </div>
+    </div>
+    <p class="login-footer">© 2026 LeapChess · Internal Testing Environment</p>
+  </div>
+
+  <script type="module">
+    import { detectApiBase, saveSession, getToken, clearSession } from './js/api.js';
+
+    // 如果已有有效 session，直接跳回首页
+    if (getToken()) {
+      window.location.replace('index.html');
+    }
+
+    await detectApiBase();
+
+    const form = document.getElementById('loginForm');
+    const msgEl = document.getElementById('loginMsg');
+    const btn = document.getElementById('loginBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msgEl.className = 'form-msg';
+      msgEl.textContent = '';
+      btn.disabled = true;
+      btn.querySelector('span').textContent = 'Signing in…';
+
+      const username = document.getElementById('loginUser').value.trim();
+      const password = document.getElementById('loginPass').value;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        saveSession(data.token, data.user);
+        msgEl.className = 'form-msg ok';
+        msgEl.textContent = `Welcome, ${data.user.display_name || data.user.username}!`;
+        setTimeout(() => window.location.replace('index.html'), 600);
+      } catch (err) {
+        msgEl.className = 'form-msg error';
+        msgEl.textContent = err.message;
+      } finally {
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>

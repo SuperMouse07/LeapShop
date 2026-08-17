@@ -135,11 +135,13 @@ async function initSchema() {
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'customer',
+        display_name TEXT NOT NULL DEFAULT '',
         created_at TIMESTAMPTZ DEFAULT NOW()
       )`);
     await db.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
+        sku TEXT DEFAULT '',
         name TEXT NOT NULL,
         category TEXT NOT NULL DEFAULT 'chess-timer',
         price NUMERIC(10,2) NOT NULL DEFAULT 0,
@@ -170,11 +172,13 @@ async function initSchema() {
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'customer',
+        display_name TEXT NOT NULL DEFAULT '',
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )`);
     await db.query(`
       CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sku TEXT DEFAULT '',
         name TEXT NOT NULL,
         category TEXT NOT NULL DEFAULT 'chess-timer',
         price REAL NOT NULL DEFAULT 0,
@@ -207,7 +211,39 @@ async function initSchema() {
       value TEXT NOT NULL DEFAULT ''
     )`);
 
+  // 活动日志表（测试阶段操作追溯：登录/浏览/加购/CRUD 审计等事件）
+  if (usePg) {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS activity_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        action TEXT NOT NULL,
+        detail TEXT DEFAULT '',
+        target_type TEXT DEFAULT '',
+        target_id TEXT DEFAULT '',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )`);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id)`);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at DESC)`);
+  } else {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS activity_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        action TEXT NOT NULL,
+        detail TEXT DEFAULT '',
+        target_type TEXT DEFAULT '',
+        target_id TEXT DEFAULT '',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+      )`);
+  }
+
   // 平滑迁移：旧库补列（幂等）
+  await ensureColumn('users', 'display_name', "TEXT NOT NULL DEFAULT ''"); // 测试账户显示名
+  await ensureColumn('activity_logs', 'target_type', "TEXT DEFAULT ''"); // 审计对象类型（product/slide/setting）
+  await ensureColumn('activity_logs', 'target_id', "TEXT DEFAULT ''"); // 审计对象 ID
+  await ensureColumn('products', 'sku', "TEXT DEFAULT ''"); // 外部素材同步键（如 KK9908、qp-magnetic foldable）
   await ensureColumn('products', 'images', "TEXT DEFAULT '[]'");
   await ensureColumn('products', 'variants', "TEXT DEFAULT '[]'");
   await ensureColumn('products', 'details', "TEXT DEFAULT '[]'");

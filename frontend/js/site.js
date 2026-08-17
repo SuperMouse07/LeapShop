@@ -6,6 +6,7 @@
  * 商品信息经 store.js 从后端拉取（模块级缓存，仅拉一次）。
  */
 import { fetchProducts, fetchSettings, escapeHtml } from './store.js';
+import { isLoggedIn, currentUser, logout, roleLabel, logActivity } from './auth.js';
 
 const KEY = 'pf_cart';
 const PAGE = document.body.dataset.page || 'home';
@@ -33,6 +34,7 @@ document.body.insertAdjacentHTML('afterbegin', `
         ${NAV.map(([file, key, label]) =>
           `<a href="${file}" class="${key === activeKey ? 'is-active' : ''}">${label}</a>`).join('')}
       </nav>
+      <span class="nav-auth-slot" id="navAuthSlot"></span>
       <button class="nav-cart" id="cartBtn" aria-label="Open cart">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" aria-hidden="true">
           <path d="M6 7h12l1 14H5L6 7z" /><path d="M9 7a3 3 0 0 1 6 0" />
@@ -44,6 +46,27 @@ document.body.insertAdjacentHTML('afterbegin', `
       </button>
     </div>
   </header>`);
+
+/* ---------- 导航栏用户状态 ---------- */
+(function renderNavAuth() {
+  const slot = document.getElementById('navAuthSlot');
+  if (!slot) return;
+  if (isLoggedIn()) {
+    const user = currentUser();
+    const name = escapeHtml(user.display_name || user.username);
+    const role = escapeHtml(roleLabel());
+    slot.innerHTML = `
+      <span class="nav-user-badge" title="${role}">♟ ${name}</span>
+      <a href="#" class="nav-auth-logout" id="navLogoutBtn" title="Sign out">✕</a>
+    `;
+    slot.querySelector('#navLogoutBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      logout('login.html');
+    });
+  } else {
+    slot.innerHTML = `<a href="login.html" class="nav-auth-signin">Sign In</a>`;
+  }
+})();
 
 document.body.insertAdjacentHTML('beforeend', `
   <div class="overlay" id="overlay"></div>
@@ -73,6 +96,9 @@ document.body.insertAdjacentHTML('beforeend', `
       </div>
     </div>
   </footer>`);
+
+/* ---------- 页面访问日志（测试追溯） ---------- */
+logActivity('page_view', `${PAGE} — ${document.title}`);
 
 /* ---------- 跨页购物车（pf_cart） ---------- */
 let cart = new Map();
@@ -126,6 +152,8 @@ function renderCart() {
 function addToCart(id, qty = 1) {
   cart.set(id, (cart.get(id) || 0) + qty);
   save(); renderCart(); openDrawer();
+  const p = find(id);
+  logActivity('add_to_cart', `${p.name} (id:${id}) x${qty}`);
 }
 
 /* 一键导出购物清单（本地 Blob 下载，无网络请求） */
@@ -164,7 +192,7 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-/* ---------- 隐蔽后台入口：2 秒内连敲 5 次空格 → /admin.html ---------- */
+/* ---------- 隐蔽后台入口：2 秒内连敲 5 次空格 → 角色分流 ---------- */
 const spaceStamps = [];
 document.addEventListener('keydown', (e) => {
   if (e.key !== ' ' || e.repeat) return;
@@ -174,7 +202,31 @@ document.addEventListener('keydown', (e) => {
   while (spaceStamps.length > 5) spaceStamps.shift();
   if (spaceStamps.length === 5 && now - spaceStamps[0] <= 2000) {
     spaceStamps.length = 0;
-    location.href = 'admin.html';
+    // 角色分流：未登录跳登录页；demo 角色拒绝访问后台
+    const user = currentUser();
+    if (!user) {
+      location.href = 'login.html';
+    } else if (user.role === 'demo') {
+      // demo/observer 角色无权进入后台，显示提示
+      if (!document.getElementById('demoDenied')) {
+        document.body.insertAdjacentHTML('beforeend', `
+          <div class="overlay" id="demoDeniedOverlay" style="display:block;"></div>
+          <div id="demoDenied" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+            z-index:9999;background:#fff;border:1px solid var(--line);border-top:3px solid #9A2B1E;
+            padding:36px 40px;text-align:center;max-width:420px;">
+            <div style="font-size:36px;color:#9A2B1E;margin-bottom:10px;">♚</div>
+            <h3 style="font-family:var(--serif);font-size:20px;margin-bottom:8px;">Access Denied</h3>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+              Observer accounts cannot access the management panel.<br>
+              Please contact an admin for editor access.
+            </p>
+            <button class="btn btn-small" onclick="document.getElementById('demoDenied').remove();document.getElementById('demoDeniedOverlay').remove();">OK</button>
+          </div>`);
+      }
+    } else {
+      // admin / tester 均可进入后台
+      location.href = 'admin.html';
+    }
   }
 });
 

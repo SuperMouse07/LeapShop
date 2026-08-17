@@ -55,6 +55,8 @@
     <!-- Left sidebar navigation（锚点跳转） -->
     <aside class="admin-side">
       <a href="#statsPanel">♖ Server Monitor</a>
+      <a href="#usersPanel">♚ Test Accounts</a>
+      <a href="#activityPanel">♝ Activity Logs</a>
       <a href="#heroPanel">♕ Hero Product</a>
       <a href="#productsGrid">♜ Products</a>
       <a href="#slidesPanel">♞ Home Carousel</a>
@@ -100,6 +102,70 @@
         </div>
       </div>
     </div>
+
+    <!-- Test Accounts management -->
+    <section class="panel admin-users" id="usersPanel">
+      <div class="panel-head">
+        <h2>♚ Test Accounts</h2>
+        <button class="btn btn-small btn-ghost" type="button" id="usersRefreshBtn">Refresh ⟳</button>
+      </div>
+      <p class="hero-hint">Manage internal testing accounts. Testers can browse the site with identified sessions, enabling activity traceability.</p>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th><th>Username</th><th>Display Name</th><th>Role</th><th>Created</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userRows">
+            <tr><td colspan="6" class="loading">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <form class="slide-add" id="userAddForm" style="margin-top:16px;">
+        <input type="text" id="newUsername" placeholder="Username" style="max-width:140px;" required />
+        <input type="text" id="newDisplayName" placeholder="Display Name" style="max-width:160px;" />
+        <input type="password" id="newUserPass" placeholder="Password (min 4)" style="max-width:140px;" required />
+        <select id="newUserRole" style="max-width:110px;">
+          <option value="tester">Tester</option>
+          <option value="demo">Observer</option>
+        </select>
+        <button class="btn btn-small" type="submit" id="userAddBtn">Add Account</button>
+      </form>
+      <p class="form-msg" id="userMsg"></p>
+    </section>
+
+    <!-- Activity logs -->
+    <section class="panel admin-activity" id="activityPanel">
+      <div class="panel-head">
+        <h2>♝ Activity Logs</h2>
+        <button class="btn btn-small btn-ghost" type="button" id="activityRefreshBtn">Refresh ⟳</button>
+      </div>
+      <div class="hero-row" style="margin-bottom:12px;">
+        <label>Filter by user
+          <select id="activityUserFilter"><option value="">All Users</option></select>
+        </label>
+        <label>Limit
+          <select id="activityLimit">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+          </select>
+        </label>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Detail</th>
+            </tr>
+          </thead>
+          <tbody id="activityRows">
+            <tr><td colspan="5" class="loading">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
     <!-- Hero product（主推款：全局唯一，前台置顶展示） -->
     <section class="panel admin-hero-panel" id="heroPanel">

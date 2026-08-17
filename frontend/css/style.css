@@ -148,6 +148,29 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
   transform: scale(0); transition: transform .3s cubic-bezier(.34, 1.56, .64, 1);
 }
 .cart-badge.show { transform: scale(1); }
+
+/* ---------- 导航栏用户状态（测试登录系统） ---------- */
+.nav-auth-slot {
+  display: inline-flex; align-items: center; gap: 8px;
+  flex: 0 0 auto; white-space: nowrap;
+}
+.nav-user-badge {
+  font-size: 11px; letter-spacing: .08em; color: var(--ink-2);
+  padding: 5px 12px; border: 1px solid var(--line-gold);
+  background: rgba(212, 175, 55, .06);
+}
+.nav-auth-logout {
+  font-size: 13px; color: var(--muted); padding: 4px 6px;
+  transition: color .2s; line-height: 1;
+}
+.nav-auth-logout:hover { color: #9A2B1E; }
+.nav-auth-signin {
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--gold-deep); padding: 6px 14px;
+  border: 1px solid var(--line-gold); transition: all .25s;
+}
+.nav-auth-signin:hover { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+
 .nav-burger { display: none; flex-direction: column; gap: 5px; padding: 8px; }
 .nav-burger span { width: 22px; height: 2px; background: var(--ink); transition: transform .3s, opacity .3s; }
 

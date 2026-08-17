@@ -68,8 +68,10 @@ export function renderNavUser() {
     slot.innerHTML = '';
     return;
   }
+  const roleLabels = { admin: 'Super Admin', tester: 'Tester', demo: 'Observer' };
+  const roleLabel = roleLabels[user.role] || user.role;
   slot.innerHTML = `
-    <span class="nav-user">♚ <b>${escapeHtml(user.username)}</b> · ${user.role === 'admin' ? 'Super Admin' : 'Member'}</span>
+    <span class="nav-user">♚ <b>${escapeHtml(user.display_name || user.username)}</b> · ${escapeHtml(roleLabel)}</span>
     <a href="#" class="btn btn-small btn-ghost" id="logoutBtn">Sign Out</a>
   `;
   slot.querySelector('#logoutBtn')?.addEventListener('click', (e) => {

@@ -14,7 +14,21 @@ const { db, connect, initSchema, usePg } = require('./db');
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'data', 'uploads');
 const SEED_ASSETS_DIR = path.join(__dirname, '..', 'frontend', 'sandbox', 'prototype-f', 'assets');
 
-const USERS = [{ username: 'P001', password: '123456', role: 'admin' }];
+/**
+ * 多角色测试账户（内部测试阶段）
+ * - admin  ：全权限管理员（P001）
+ * - tester ：测试员，可浏览全部页面并留下操作日志（T001~T005）
+ * - demo   ：观察员，只读浏览（D001）
+ */
+const USERS = [
+  { username: 'P001', password: '123456', role: 'admin',  display_name: 'Super Admin' },
+  { username: 'T001', password: 'test123', role: 'tester', display_name: 'Tester Alice' },
+  { username: 'T002', password: 'test123', role: 'tester', display_name: 'Tester Bob' },
+  { username: 'T003', password: 'test123', role: 'tester', display_name: 'Tester Charlie' },
+  { username: 'T004', password: 'test123', role: 'tester', display_name: 'Tester Diana' },
+  { username: 'T005', password: 'test123', role: 'tester', display_name: 'Tester Evan' },
+  { username: 'D001', password: 'demo123', role: 'demo',   display_name: 'Demo Observer' },
+];
 
 /** 将方案F资产文件导入 UPLOAD_DIR（sha1 内容哈希命名，天然去重、幂等），返回 /uploads/... URL */
 function importAsset(fileName) {
@@ -106,12 +120,11 @@ async function seed() {
     const exists = await db.query('SELECT id FROM users WHERE username = ?', [u.username]);
     if (exists.length === 0) {
       const hash = bcrypt.hashSync(u.password, 10);
-      await db.run('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', [
-        u.username,
-        hash,
-        u.role,
-      ]);
-      console.log(`[seed] 用户已创建: ${u.username} (${u.role})`);
+      await db.run(
+        'INSERT INTO users (username, password_hash, role, display_name) VALUES (?, ?, ?, ?)',
+        [u.username, hash, u.role, u.display_name || u.username]
+      );
+      console.log(`[seed] 用户已创建: ${u.username} (${u.role}) — ${u.display_name || u.username}`);
     }
   }
 

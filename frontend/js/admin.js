@@ -31,7 +31,9 @@ function pendingImageBytes() {
   return [...pendingImages, ...pendingDetails].reduce((s, src) => s + dataUrlBytes(src), 0);
 }
 
-/* ---------- Access guard（内置登录） ---------- */
+/* ---------- Access guard（内置登录 + 角色分流） ---------- */
+const EDITOR_ROLES = ['admin', 'tester'];
+
 function showOnly(panelId) {
   ['loginPanel', 'deniedPanel', 'adminPanel'].forEach((id) => {
     $(id).classList.toggle('hidden', id !== panelId);
@@ -47,12 +49,26 @@ async function guard() {
   }
   try {
     const { user } = await api('/auth/me');
-    if (user.role !== 'admin') {
-      $('deniedMsg').innerHTML = `Account <b>${escapeHtml(user.username)}</b> does not have admin access.`;
+    if (!EDITOR_ROLES.includes(user.role)) {
+      $('deniedMsg').innerHTML = `Account <b>${escapeHtml(user.username)}</b> (${escapeHtml(user.role)}) does not have editor access.`;
       showOnly('deniedPanel');
       return false;
     }
     showOnly('adminPanel');
+    // 面板级权限控制：tester 隐藏管理专属面板
+    if (user.role === 'tester') {
+      ['statsPanel', 'usersPanel', 'activityPanel'].forEach((id) => {
+        const el = $(id);
+        if (el) el.classList.add('hidden');
+      });
+      // 隐藏侧栏对应锚点链接
+      document.querySelectorAll('.admin-side a').forEach((a) => {
+        const href = a.getAttribute('href');
+        if (href === '#statsPanel' || href === '#usersPanel' || href === '#activityPanel') {
+          a.classList.add('hidden');
+        }
+      });
+    }
     return true;
   } catch {
     clearSession();
@@ -74,9 +90,9 @@ $('loginForm').addEventListener('submit', async (e) => {
       body: JSON.stringify({ username: $('loginUser').value.trim(), password: $('loginPass').value }),
     });
     saveSession(token, user);
-    if (user.role !== 'admin') {
+    if (!EDITOR_ROLES.includes(user.role)) {
       clearSession();
-      msg.textContent = 'This account does not have admin access.';
+      msg.textContent = 'This account does not have editor access.';
       msg.className = 'form-msg err';
       return;
     }
@@ -693,13 +709,130 @@ $('productRows').addEventListener('change', async (e) => {
   }
 });
 
+/* ---------- Test Accounts management ---------- */
+let allUsers = [];
+
+async function loadUsers() {
+  try {
+    const { users } = await api('/users');
+    allUsers = users;
+    const tbody = $('userRows');
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">No users found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map((u) => `
+      <tr>
+        <td>${u.id}</td>
+        <td><b>${escapeHtml(u.username)}</b></td>
+        <td>${escapeHtml(u.display_name || u.username)}</td>
+        <td><span class="micro-label" style="font-size:10px;">${escapeHtml(u.role)}</span></td>
+        <td style="font-size:12px;color:var(--muted);">${u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>
+        <td>
+          ${u.role !== 'admin' ? `<button class="btn btn-small btn-danger" data-del-user="${u.id}">Delete</button>` : '<span style="color:var(--muted);font-size:11px;">Protected</span>'}
+        </td>
+      </tr>
+    `).join('');
+    // Populate activity filter dropdown
+    const filter = $('activityUserFilter');
+    if (filter) {
+      filter.innerHTML = '<option value="">All Users</option>' +
+        users.map((u) => `<option value="${u.id}">${escapeHtml(u.display_name || u.username)} (${escapeHtml(u.username)})</option>`).join('');
+    }
+  } catch (err) {
+    $('userMsg').textContent = err.message;
+    $('userMsg').className = 'form-msg err';
+  }
+}
+
+// Add user
+$('userAddForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = $('userMsg');
+  const username = $('newUsername').value.trim();
+  const display_name = $('newDisplayName').value.trim();
+  const password = $('newUserPass').value;
+  const role = $('newUserRole').value;
+  if (!username || !password) { msg.textContent = 'Username and password required'; msg.className = 'form-msg err'; return; }
+  try {
+    await api('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, role, display_name }),
+    });
+    msg.textContent = `Account "${username}" created.`;
+    msg.className = 'form-msg ok';
+    $('newUsername').value = '';
+    $('newDisplayName').value = '';
+    $('newUserPass').value = '';
+    loadUsers();
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.className = 'form-msg err';
+  }
+});
+
+// Delete user (event delegation)
+$('userRows').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-del-user]');
+  if (!btn) return;
+  if (!confirm('Delete this test account?')) return;
+  try {
+    await api(`/users/${btn.dataset.delUser}`, { method: 'DELETE' });
+    loadUsers();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+$('usersRefreshBtn').addEventListener('click', loadUsers);
+
+/* ---------- Activity Logs ---------- */
+async function loadActivity() {
+  const tbody = $('activityRows');
+  tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading…</td></tr>';
+  try {
+    const userId = $('activityUserFilter').value;
+    const limit = $('activityLimit').value;
+    const qs = new URLSearchParams({ limit });
+    if (userId) qs.set('user_id', userId);
+    const { logs } = await api(`/activity?${qs}`);
+    if (!logs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="loading">No activity recorded yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = logs.map((l) => {
+      const target = l.target_type ? `${escapeHtml(l.target_type)}${l.target_id ? ':' + escapeHtml(l.target_id) : ''}` : '—';
+      return `
+      <tr>
+        <td style="font-size:12px;white-space:nowrap;">${l.created_at ? new Date(l.created_at).toLocaleString() : '—'}</td>
+        <td><b>${escapeHtml(l.display_name || l.username || 'Unknown')}</b></td>
+        <td><span class="micro-label" style="font-size:10px;">${escapeHtml(l.action)}</span></td>
+        <td style="font-size:11px;color:var(--muted);white-space:nowrap;">${target}</td>
+        <td style="font-size:12px;color:var(--ink-2);max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(l.detail || '')}">${escapeHtml(l.detail || '')}</td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="loading">Error: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+$('activityRefreshBtn').addEventListener('click', loadActivity);
+$('activityUserFilter').addEventListener('change', loadActivity);
+$('activityLimit').addEventListener('change', loadActivity);
+
 /* ---------- Boot ---------- */
 function boot() {
   renderGalleries();
-  loadStats();
   loadSlides();
   loadSettings();
   loadList();
+  // 管理专属面板：仅 admin 加载
+  const user = getUser();
+  if (user && user.role === 'admin') {
+    loadStats();
+    loadUsers();
+    loadActivity();
+  }
 }
 
 (async function init() {
