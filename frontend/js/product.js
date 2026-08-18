@@ -217,25 +217,20 @@ async function init() {
   $('#qPlus').addEventListener('click', () => { qty = Math.min(99, qty + 1); $('#qOut').textContent = qty; });
   $('#pdAdd').addEventListener('click', () => window.PF.addToCart(p.id, qty));
 
-  /* 主图左右箭头：平滑滚动切换一张 + 边界禁用（scroll 防抖 100ms 同步状态） */
+  /* 主图左右箭头：循环切换（末张→首张、首张→末张）；仅 1 张时不渲染按钮 */
   const mainEl = $('#pdMain');
   const prevBtn = $('#pdPrev'), nextBtn = $('#pdNext');
   if (mainEl && prevBtn && nextBtn) {
-    // 以一张主图宽度 + gap 为步长，保证每次点击恰好切换一张（scroll-snap 对齐）
+    const imgs = [...mainEl.querySelectorAll('img')];
     const stepW = () => {
       const img = mainEl.querySelector('img');
       return img ? Math.round(img.getBoundingClientRect().width) + 12 : 300;
     };
-    prevBtn.addEventListener('click', () => mainEl.scrollBy({ left: -stepW(), behavior: 'smooth' }));
-    nextBtn.addEventListener('click', () => mainEl.scrollBy({ left: stepW(), behavior: 'smooth' }));
-    const syncArrows = () => {
-      const max = mainEl.scrollWidth - mainEl.clientWidth;
-      prevBtn.disabled = mainEl.scrollLeft <= 2;
-      nextBtn.disabled = mainEl.scrollLeft >= max - 2;
-    };
-    let deb = null;
-    mainEl.addEventListener('scroll', () => { clearTimeout(deb); deb = setTimeout(syncArrows, 100); });
-    syncArrows();
+    /* 由 scrollLeft 推断当前索引（步长 = 图宽 + gap） */
+    const currentIndex = () => Math.round(mainEl.scrollLeft / stepW());
+    const goTo = (i) => mainEl.scrollTo({ left: i * stepW(), behavior: 'smooth' });
+    prevBtn.addEventListener('click', () => goTo(currentIndex() <= 0 ? imgs.length - 1 : currentIndex() - 1));
+    nextBtn.addEventListener('click', () => goTo(currentIndex() >= imgs.length - 1 ? 0 : currentIndex() + 1));
   }
 
   /* 悬停放大镜 + Lightbox：主图与详情图共用同一浏览序列 */
