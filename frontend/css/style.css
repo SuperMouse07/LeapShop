@@ -358,12 +358,16 @@ button { font-family: inherit; cursor: pointer; background: none; border: none; 
 .pd-media {
   min-width: 0; height: calc(100vh - 168px); min-height: 460px;
   overflow-y: auto; overscroll-behavior: contain; padding-right: 12px;
-  scrollbar-width: none;   /* 静止时隐藏滚动条，hover/按下时显现（见下方） */
+  /* 槽位常驻（thin 固定不变）→ 切换无布局跳动；静止时滑块透明实现"视觉隐藏" */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color .25s ease;
 }
-.pd-media:hover, .pd-media:active { scrollbar-width: thin; }
+.pd-media:hover, .pd-media:active, .pd-media:focus-within { scrollbar-color: var(--line) transparent; }
+/* WebKit（Safari 等不支持 scrollbar-width 的引擎）：5px 槽位常驻，仅切换滑块颜色 */
 .pd-media::-webkit-scrollbar { width: 5px; }
-.pd-media::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
-.pd-media:hover::-webkit-scrollbar-thumb, .pd-media:active::-webkit-scrollbar-thumb { background: var(--line); }
+.pd-media::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; transition: background .25s ease; }
+.pd-media:hover::-webkit-scrollbar-thumb, .pd-media:active::-webkit-scrollbar-thumb, .pd-media:focus-within::-webkit-scrollbar-thumb { background: var(--line); }
 .pd-main {
   display: flex; gap: 12px; overflow-x: auto;
   scroll-snap-type: x mandatory; padding-bottom: 0;
